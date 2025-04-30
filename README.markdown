@@ -1,4 +1,4 @@
-# DementiaCareApp
+# RemMe --> DementiaCareApp
 
 A Flutter-based mobile application designed to support dementia patients and their guardians. The app provides features such as live patient tracking, danger zone alerts, routine management, memory quizzes, and a medical AI chatbot to assist patients and guardians in managing daily care and monitoring.
 
@@ -29,11 +29,11 @@ Before running the app, ensure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/DementiaCareApp.git
+git clone https://github.com/ADURITEJA/RemMe_App_access.git
 cd DementiaCareApp
 ```
 
-Replace `your-username` with your GitHub username.
+Replace `ADURITEJA` with your GitHub username.
 
 ### 2. Install Dependencies
 
@@ -194,10 +194,6 @@ Contributions are welcome! Please follow these steps:
 4. Push to the branch (`git push origin feature/your-feature`).
 5. Open a Pull Request.
 
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
 ## Contact
 
-For questions or support, please open an issue on GitHub or contact [your-email@example.com](mailto:your-email@example.com).
+For questions or support, please open an issue on GitHub or contact [teja10aduri@gmail.com](mailto:teja10aduri@gmail.com).
