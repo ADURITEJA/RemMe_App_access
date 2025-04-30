@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "851139346839",
+    "project_id": "remme-742a1",
+    "storage_bucket": "remme-742a1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:851139346839:android:59ed9bd6d2d5e0e0de44d2",
+        "android_client_info": {
+          "package_name": "com.example.dementia_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfhD0X0taK6AYXsmdx8K7vCeWwEpHhYY4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:851139346839:android:4bb69945b31b8e4fde44d2",
+        "android_client_info": {
+          "package_name": "com.example.remme_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfhD0X0taK6AYXsmdx8K7vCeWwEpHhYY4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
