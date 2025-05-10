@@ -4,9 +4,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dementia_app/pages/add_patient_page.dart';
 import 'package:dementia_app/pages/danger_zone_alerts_page.dart';
-import 'package:dementia_app/pages/danger_zone_setup_page.dart';
 import 'package:dementia_app/pages/guardian_dashboard_page.dart';
-import 'package:dementia_app/pages/live_patient_tracking_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -25,8 +23,66 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart'; // Import from the first main.dart
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'dart:convert';
+import 'package:dementia_app/pages/patient_tracking_zone_page.dart';
+import 'package:dementia_app/pages/alerts_log_page.dart';
+import 'package:dementia_app/profile_setup/profile_question_phone.dart';
+import 'package:dementia_app/profile_setup/profile_question_gender.dart';
+import 'package:dementia_app/profile_setup/profile_question_age.dart';
+import 'package:dementia_app/profile_setup/profile_question_name.dart';
+import 'package:dementia_app/profile_setup/profile_question_photo.dart';
+import 'package:dementia_app/profile_setup/profile_summary_screen.dart';
+import 'package:dementia_app/pages/profile_page.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:animated_text_kit/animated_text_kit.dart';
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("🔔 Handling background message: ${message.messageId}");
+
+  // Show local notification for background messages
+  RemoteNotification? notification = message.notification;
+  AndroidNotification? android = message.notification?.android;
+
+  if (notification != null && android != null) {
+    flutterLocalNotificationsPlugin.show(
+      notification.hashCode,
+      notification.title,
+      notification.body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          'high_importance_channel',
+          'High Importance Notifications',
+          importance: Importance.high,
+          priority: Priority.high,
+          showWhen: true,
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _requestNotificationPermission() async {
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+  NotificationSettings settings = await messaging.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
+  if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+    print('✅ User granted permission');
+  } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
+    print('⚠️ Provisional permission granted');
+  } else {
+    print('❌ User declined or has not accepted permission');
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,12 +90,99 @@ void main() async {
   await Firebase.initializeApp();
   print('Before AlarmManager');
   await AndroidAlarmManager.initialize();
+  print('Before Firebase Messaging');
+
+  // Initialize FCM
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Request notification permissions
+  await _requestNotificationPermission();
+
+  // Get and print FCM token
+  final token = await FirebaseMessaging.instance.getToken();
+  print("🔔 FCM Token: $token");
+
+  // Subscribe to alerts topic
+  await FirebaseMessaging.instance.subscribeToTopic("alerts");
+  print("🔔 Subscribed to 'alerts' topic");
+
   print('Before runApp');
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    _initializeNotifications();
+    _setupForegroundMessageHandling();
+  }
+
+  void _setupForegroundMessageHandling() {
+    // Handle foreground messages
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print("🔔 Foreground message received: ${message.notification?.title}");
+
+      // Show local notification for foreground messages
+      RemoteNotification? notification = message.notification;
+      AndroidNotification? android = message.notification?.android;
+
+      if (notification != null && android != null) {
+        flutterLocalNotificationsPlugin.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              'high_importance_channel',
+              'High Importance Notifications',
+              importance: Importance.high,
+              priority: Priority.high,
+              showWhen: true,
+            ),
+            iOS: DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
+          ),
+        );
+      }
+    });
+
+    // Handle notification taps
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print("🔔 Notification tapped: ${message.notification?.title}");
+      // You can add navigation logic here based on the notification
+    });
+  }
+
+  void _initializeNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    final DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
+
+    final InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
+
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,11 +192,64 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       home: const RoleSelectionPage(),
+
       routes: {
         '/patient/memories': (context) => const PatientFeaturesPage(),
         '/patient/quiz': (context) => const MemoryQuizGamePage(),
         '/patient/routines': (context) => const PatientRoutinePage(),
         '/patient/chatbot': (context) => const MedicalAIChatBotPage(),
+
+        '/guardian/patient_tracking':
+            (context) =>
+                const PatientTrackingZonePage(patientUid: '', patientName: ''),
+
+        '/alerts': (context) => const AlertsLogPage(),
+
+        '/profile_question_name': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return ProfileQuestionName(profileData: args);
+        },
+        '/profile/phone': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return ProfileQuestionPhone(profileData: args);
+        },
+        '/profile/gender': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return ProfileQuestionGender(profileData: args);
+        },
+        '/profile/age': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return ProfileQuestionAge(profileData: args);
+        },
+        '/profile/photo': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return ProfileQuestionPhoto(profileData: args);
+        },
+        '/profile/summary': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return ProfileSummaryScreen(profileData: args);
+        },
+
+        '/guardian_dashboard': (context) => const GuardianDashboardPage(),
+        '/patient_dashboard': (context) => const PatientDashboardPage(),
+        '/profile_page': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return ProfilePage(profileData: args);
+        },
       },
     );
   }
@@ -76,191 +272,148 @@ class _RoleSelectionPageState extends State<RoleSelectionPage> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              Color(0xFF4B5EAA), // Deep blue
-              Color(0xFFD2B8E3), // Light purple
+              Color(0xFF6B5B95), // Purple
+              Color(0xFF88B7D5), // Light blue
             ],
           ),
         ),
-        child: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Title and subtitle
-                const Text(
-                  'Select Your Role',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Choose whether you are a Guardian or a Patient',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: Color(0xFFB0B0B0),
-                  ),
-                ),
-                const SizedBox(height: 40),
-                // Guardian Button with Hover Effect
-                GestureDetector(
-                  onTapDown: (_) {
-                    setState(() {
-                      _isGuardianPressed = true;
-                    });
-                  },
-                  onTapUp: (_) {
-                    setState(() {
-                      _isGuardianPressed = false;
-                    });
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const GuardianLoginPage(),
+        child: Stack(
+          children: [
+            // Background circles
+            Positioned(top: -50, left: -50, child: _buildCircle(150, 0.3)),
+            Positioned(top: 100, right: -70, child: _buildCircle(200, 0.2)),
+            Positioned(bottom: -60, left: -30, child: _buildCircle(180, 0.3)),
+            Positioned(bottom: 50, right: -40, child: _buildCircle(120, 0.2)),
+            SafeArea(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Select Your Role',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                    );
-                  },
-                  onTapCancel: () {
-                    setState(() {
-                      _isGuardianPressed = false;
-                    });
-                  },
-                  child: _buildGradientButton(
-                    label: 'Guardian',
-                    isPressed: _isGuardianPressed,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // Patient Button with Hover Effect
-                GestureDetector(
-                  onTapDown: (_) {
-                    setState(() {
-                      _isPatientPressed = true;
-                    });
-                  },
-                  onTapUp: (_) {
-                    setState(() {
-                      _isPatientPressed = false;
-                    });
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PatientLoginPage(),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Choose whether you are a Guardian or a Patient',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white70,
                       ),
-                    );
-                  },
-                  onTapCancel: () {
-                    setState(() {
-                      _isPatientPressed = false;
-                    });
-                  },
-                  child: _buildGradientButton(
-                    label: 'Patient',
-                    isPressed: _isPatientPressed,
-                  ),
+                    ),
+                    const SizedBox(height: 40),
+                    // Guardian Button
+                    GestureDetector(
+                      onTapDown: (_) {
+                        setState(() {
+                          _isGuardianPressed = true;
+                        });
+                      },
+                      onTapUp: (_) {
+                        setState(() {
+                          _isGuardianPressed = false;
+                        });
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const GuardianLoginPage(),
+                          ),
+                        );
+                      },
+                      onTapCancel: () {
+                        setState(() {
+                          _isGuardianPressed = false;
+                        });
+                      },
+                      child: _buildRoleButton(
+                        label: 'Guardian',
+                        isPressed: _isGuardianPressed,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Patient Button
+                    GestureDetector(
+                      onTapDown: (_) {
+                        setState(() {
+                          _isPatientPressed = true;
+                        });
+                      },
+                      onTapUp: (_) {
+                        setState(() {
+                          _isPatientPressed = false;
+                        });
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PatientLoginPage(),
+                          ),
+                        );
+                      },
+                      onTapCancel: () {
+                        setState(() {
+                          _isPatientPressed = false;
+                        });
+                      },
+                      child: _buildRoleButton(
+                        label: 'Patient',
+                        isPressed: _isPatientPressed,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCircle(double radius, double opacity) {
+    return Container(
+      width: radius,
+      height: radius,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(opacity),
+      ),
+    );
+  }
+
+  Widget _buildRoleButton({required String label, required bool isPressed}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: double.infinity,
+        height: 60,
+        transform: Matrix4.identity()..scale(isPressed ? 0.95 : 1.0),
+        transformAlignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFF6B5B95),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
         ),
       ),
     );
   }
-
-  Widget _buildGradientButton({
-    required String label,
-    required bool isPressed,
-  }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 150), // Animation duration
-      width: 250, // Fixed width for consistency
-      height: 60, // Increased height for better touch area
-      transform:
-          Matrix4.identity()
-            ..scale(isPressed ? 0.95 : 1.0), // Scale down when pressed
-      transformAlignment: Alignment.center,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF4B5EAA), // Dark blue
-            Color(0xFFE3B8D2), // Pinkish-purple
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isPressed ? 0.3 : 0.2),
-            offset: const Offset(0, 4),
-            blurRadius: isPressed ? 12 : 8,
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-Widget _buildGradientButton({
-  required BuildContext context,
-  required String label,
-  required VoidCallback onPressed,
-}) {
-  return Container(
-    width: 250, // Fixed width for consistency
-    height: 60, // Increased height for better touch area
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [
-          Color(0xFF4B5EAA), // Dark blue
-          Color(0xFFE3B8D2), // Pinkish-purple
-        ],
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-      ),
-      borderRadius: BorderRadius.circular(12),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.2),
-          offset: const Offset(0, 4),
-          blurRadius: 8,
-        ),
-      ],
-    ),
-    child: ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.transparent, // Transparent to show gradient
-        shadowColor: Colors.transparent, // Disable default shadow
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
-      ),
-    ),
-  );
 }
 
 class MyHomePage extends StatefulWidget {
@@ -320,6 +473,7 @@ class _GuardianLoginPageState extends State<GuardianLoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoginPressed = false;
 
   @override
   void dispose() {
@@ -330,11 +484,29 @@ class _GuardianLoginPageState extends State<GuardianLoginPage> {
 
   Future<void> _loginGuardian() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoginPressed = true;
+      });
       try {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
+        final userCredential = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(
+              email: _emailController.text,
+              password: _passwordController.text,
+            );
+
+        final guardianUid = userCredential.user!.uid;
+
+        // Get FCM token
+        final fcmToken = await FirebaseMessaging.instance.getToken();
+
+        // Save FCM token to Firestore
+        if (fcmToken != null) {
+          await FirebaseFirestore.instance
+              .collection('guardians')
+              .doc(guardianUid)
+              .set({'fcmToken': fcmToken}, SetOptions(merge: true));
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Guardian logged in successfully!')),
         );
@@ -349,55 +521,167 @@ class _GuardianLoginPageState extends State<GuardianLoginPage> {
           context,
         ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
+      setState(() {
+        _isLoginPressed = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Guardian Login')),
-      body: Center(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator:
-                    (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter your email'
-                            : null,
-              ),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator:
-                    (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter your password'
-                            : null,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _loginGuardian,
-                child: const Text('Login'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const GuardianRegisterPage(),
-                    ),
-                  );
-                },
-                child: const Text('Create Account'),
-              ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF6B5B95), // Purple
+              Color(0xFF88B7D5), // Light blue
             ],
+          ),
+        ),
+        child: Stack(
+          children: [
+            // Background circles
+            Positioned(top: -50, left: -50, child: _buildCircle(150, 0.3)),
+            Positioned(top: 100, right: -70, child: _buildCircle(200, 0.2)),
+            Positioned(bottom: -60, left: -30, child: _buildCircle(180, 0.3)),
+            Positioned(bottom: 50, right: -40, child: _buildCircle(120, 0.2)),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Guardian Login',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                        _buildInputField(
+                          label: 'Email',
+                          controller: _emailController,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Please enter your email'
+                                      : null,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildInputField(
+                          label: 'Password',
+                          controller: _passwordController,
+                          obscureText: true,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Please enter your password'
+                                      : null,
+                        ),
+                        const SizedBox(height: 30),
+                        _buildLoginButton(),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => const GuardianRegisterPage(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Don\'t have an account? Create Account',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCircle(double radius, double opacity) {
+    return Container(
+      width: radius,
+      height: radius,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(opacity),
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController controller,
+    bool obscureText = false,
+    required String? Function(String?) validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30),
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        style: const TextStyle(color: Colors.white, fontSize: 18),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(
+            color: Colors.white70,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.2),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 15,
+          ),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
+  Widget _buildLoginButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _isLoginPressed ? null : _loginGuardian,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6B5B95),
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+          ),
+          child: const Text(
+            'Login',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
       ),
@@ -416,8 +700,6 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isEmailFocused = false;
-  bool _isPasswordFocused = false;
   bool _isLoginPressed = false;
 
   @override
@@ -433,10 +715,25 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
         _isLoginPressed = true;
       });
       try {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
+        final userCredential = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(
+              email: _emailController.text,
+              password: _passwordController.text,
+            );
+
+        final patientUid = userCredential.user!.uid;
+
+        // Get FCM token
+        final fcmToken = await FirebaseMessaging.instance.getToken();
+
+        // Save FCM token to Firestore
+        if (fcmToken != null) {
+          await FirebaseFirestore.instance
+              .collection('patients')
+              .doc(patientUid)
+              .set({'fcmToken': fcmToken}, SetOptions(merge: true));
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Patient logged in successfully!')),
         );
@@ -461,218 +758,156 @@ class _PatientLoginPageState extends State<PatientLoginPage> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              Color(0xFF4B5EAA), // Deep blue
-              Color(0xFFD2B8E3), // Light purple
+              Color(0xFF6B5B95), // Purple
+              Color(0xFF88B7D5), // Light blue
             ],
           ),
         ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Patient Login',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildInputContainer(
-                      label: 'EMAIL',
-                      controller: _emailController,
-                      obscureText: false,
-                      isFocused: _isEmailFocused,
-                      onFocusChange: (hasFocus) {
-                        setState(() {
-                          _isEmailFocused = hasFocus;
-                        });
-                      },
-                      validator:
-                          (value) =>
-                              value == null || value.isEmpty
-                                  ? 'Please enter your email'
-                                  : null,
-                    ),
-                    const SizedBox(height: 20),
-                    _buildInputContainer(
-                      label: 'PASSWORD',
-                      controller: _passwordController,
-                      obscureText: true,
-                      isFocused: _isPasswordFocused,
-                      onFocusChange: (hasFocus) {
-                        setState(() {
-                          _isPasswordFocused = hasFocus;
-                        });
-                      },
-                      validator:
-                          (value) =>
-                              value == null || value.isEmpty
-                                  ? 'Please enter your password'
-                                  : null,
-                    ),
-                    const SizedBox(height: 20),
-                    _buildLoginButton(),
-                    const SizedBox(height: 10),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PatientRegisterPage(),
+        child: Stack(
+          children: [
+            // Background circles
+            Positioned(top: -50, left: -50, child: _buildCircle(150, 0.3)),
+            Positioned(top: 100, right: -70, child: _buildCircle(200, 0.2)),
+            Positioned(bottom: -60, left: -30, child: _buildCircle(180, 0.3)),
+            Positioned(bottom: 50, right: -40, child: _buildCircle(120, 0.2)),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Patient Login',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                        );
-                      },
-                      child: const Text(
-                        'Create Account',
-                        style: TextStyle(color: Colors.white),
-                      ),
+                        ),
+                        const SizedBox(height: 30),
+                        _buildInputField(
+                          label: 'Email',
+                          controller: _emailController,
+                          obscureText: false,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Please enter your email'
+                                      : null,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildInputField(
+                          label: 'Password',
+                          controller: _passwordController,
+                          obscureText: true,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Please enter your password'
+                                      : null,
+                        ),
+                        const SizedBox(height: 30),
+                        _buildLoginButton(),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => const PatientRegisterPage(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Don\'t have an account? Sign up',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildInputContainer({
+  Widget _buildCircle(double radius, double opacity) {
+    return Container(
+      width: radius,
+      height: radius,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(opacity),
+      ),
+    );
+  }
+
+  Widget _buildInputField({
     required String label,
     required TextEditingController controller,
     required bool obscureText,
-    required bool isFocused,
-    required ValueChanged<bool> onFocusChange,
     required String? Function(String?) validator,
   }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      padding: const EdgeInsets.all(20),
-      width: 350,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0F0F0),
-        border: Border.all(color: Colors.black, width: 4),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black,
-            offset: const Offset(10, 10),
-            blurRadius: 0,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30),
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        style: const TextStyle(color: Colors.white, fontSize: 18),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(
+            color: Colors.white70,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
           ),
-          if (isFocused)
-            BoxShadow(
-              color: const Color(0xFFFF6B6B).withOpacity(0.4),
-              offset: const Offset(0, 0),
-              blurRadius: 20,
-              spreadRadius: -10,
-            ),
-        ],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      transform:
-          Matrix4.identity()
-            ..rotateX(isFocused ? 5 * 3.14159 / 180 : 10 * 3.14159 / 180)
-            ..rotateY(isFocused ? 1 * 3.14159 / 180 : -10 * 3.14159 / 180)
-            ..scale(isFocused ? 1.05 : 1.0),
-      transformAlignment: Alignment.center,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            color: const Color(0xFFE9B50B),
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.2),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide.none,
           ),
-          TextFormField(
-            controller: controller,
-            obscureText: obscureText,
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 15),
-              hintText: 'Enter your details',
-              hintStyle: TextStyle(
-                color: Color(0xFF666666),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            style: const TextStyle(fontSize: 18, color: Colors.black),
-            validator: validator,
-            onTap: () => onFocusChange(true),
-            onFieldSubmitted: (_) => onFocusChange(false),
-            onChanged: (_) => onFocusChange(true),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 15,
           ),
-        ],
+        ),
+        validator: validator,
       ),
     );
   }
 
   Widget _buildLoginButton() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      width: 350,
-      height: 60,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE9B50B), Color(0xFFFFD700)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        border: Border.all(color: Colors.black, width: 3),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black,
-            offset: const Offset(5, 5),
-            blurRadius: 0,
-          ),
-          if (_isLoginPressed)
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              offset: const Offset(5, 5),
-              blurRadius: 5,
-              spreadRadius: 2,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _isLoginPressed ? null : _loginPatient,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6B5B95),
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
             ),
-        ],
-      ),
-      transform:
-          Matrix4.identity()
-            ..scale(_isLoginPressed ? 0.95 : 1.0) // Scale down when pressed
-            ..translate(
-              _isLoginPressed ? -5.0 : 0.0,
-              _isLoginPressed ? -5.0 : 0.0,
-            ),
-      transformAlignment: Alignment.center,
-      child: ElevatedButton(
-        onPressed: _loginPatient,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        ),
-        child: const Text(
-          'Login',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+          child: const Text(
+            'Login',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
       ),
@@ -691,87 +926,235 @@ class _GuardianRegisterPageState extends State<GuardianRegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
+  bool _isRegisterPressed = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _nameController.dispose();
     super.dispose();
   }
 
   Future<void> _registerGuardian() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isRegisterPressed = true;
+      });
       try {
         final userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(
               email: _emailController.text,
               password: _passwordController.text,
             );
-        await FirebaseFirestore.instance
-            .collection('guardians')
-            .doc(userCredential.user!.uid)
-            .set({
-              'name': _nameController.text,
-              'email': _emailController.text,
-              'role': 'guardian',
-            });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Guardian registered successfully!')),
+
+        final uid = userCredential.user!.uid;
+        await FirebaseFirestore.instance.collection('guardians').doc(uid).set({
+          'name': _nameController.text,
+          'email': _emailController.text,
+          'role': 'guardian',
+        });
+
+        final profileData = {
+          'email': _emailController.text,
+          'name': _nameController.text,
+          'role': 'guardian',
+          'uid': uid,
+        };
+
+        Navigator.pushReplacementNamed(
+          context,
+          '/profile_question_name',
+          arguments: profileData,
         );
       } catch (e) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
+      setState(() {
+        _isRegisterPressed = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Guardian Registration')),
-      body: Center(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
-                validator:
-                    (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter your name'
-                            : null,
-              ),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator:
-                    (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter your email'
-                            : null,
-              ),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator:
-                    (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter your password'
-                            : null,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _registerGuardian,
-                child: const Text('Submit'),
-              ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF6B5B95), // Purple
+              Color(0xFF88B7D5), // Light blue
             ],
+          ),
+        ),
+        child: Stack(
+          children: [
+            // Background circles
+            Positioned(top: -50, left: -50, child: _buildCircle(150, 0.3)),
+            Positioned(top: 100, right: -70, child: _buildCircle(200, 0.2)),
+            Positioned(bottom: -60, left: -30, child: _buildCircle(180, 0.3)),
+            Positioned(bottom: 50, right: -40, child: _buildCircle(120, 0.2)),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Guardian Registration',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                        _buildInputField(
+                          label: 'Name',
+                          controller: _nameController,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Enter your name'
+                                      : null,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildInputField(
+                          label: 'Email',
+                          controller: _emailController,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Enter your email'
+                                      : null,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildInputField(
+                          label: 'Password',
+                          controller: _passwordController,
+                          obscureText: true,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Enter a password'
+                                      : null,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildInputField(
+                          label: 'Confirm Password',
+                          controller: _confirmPasswordController,
+                          obscureText: true,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Confirm password';
+                            }
+                            if (value != _passwordController.text) {
+                              return 'Passwords do not match';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 30),
+                        _buildSignUpButton(),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context); // Navigate back to login
+                          },
+                          child: const Text(
+                            'Have an account? Log in',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCircle(double radius, double opacity) {
+    return Container(
+      width: radius,
+      height: radius,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(opacity),
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController controller,
+    bool obscureText = false,
+    required String? Function(String?) validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30),
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        style: const TextStyle(color: Colors.white, fontSize: 18),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(
+            color: Colors.white70,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.2),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 15,
+          ),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
+  Widget _buildSignUpButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _isRegisterPressed ? null : _registerGuardian,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6B5B95),
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+          ),
+          child: const Text(
+            'Sign Up',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
       ),
@@ -790,93 +1173,243 @@ class _PatientRegisterPageState extends State<PatientRegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
+  bool _isRegisterPressed = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _nameController.dispose();
     super.dispose();
   }
 
   Future<void> _registerPatient() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isRegisterPressed = true;
+      });
       try {
         final userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(
               email: _emailController.text,
               password: _passwordController.text,
             );
-        await FirebaseFirestore.instance
-            .collection('patients')
-            .doc(userCredential.user!.uid)
-            .set({
-              'name': _nameController.text,
-              'email': _emailController.text,
-              'role': 'patient',
-            });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Patient registered successfully!')),
+
+        final uid = userCredential.user!.uid;
+        await FirebaseFirestore.instance.collection('patients').doc(uid).set({
+          'name': _nameController.text,
+          'email': _emailController.text,
+          'role': 'patient',
+        });
+
+        final profileData = {
+          'email': _emailController.text,
+          'name': _nameController.text,
+          'role': 'patient',
+          'uid': uid,
+        };
+
+        Navigator.pushReplacementNamed(
+          context,
+          '/profile_question_name', // Make sure this route is defined
+          arguments: profileData,
         );
       } catch (e) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
+      setState(() {
+        _isRegisterPressed = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Patient Registration')),
-      body: Center(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
-                validator:
-                    (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter your name'
-                            : null,
-              ),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator:
-                    (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter your email'
-                            : null,
-              ),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator:
-                    (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter your password'
-                            : null,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _registerPatient,
-                child: const Text('Submit'),
-              ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF6B5B95), // Purple
+              Color(0xFF88B7D5), // Light blue
             ],
+          ),
+        ),
+        child: Stack(
+          children: [
+            // Background circles
+            Positioned(top: -50, left: -50, child: _buildCircle(150, 0.3)),
+            Positioned(top: 100, right: -70, child: _buildCircle(200, 0.2)),
+            Positioned(bottom: -60, left: -30, child: _buildCircle(180, 0.3)),
+            Positioned(bottom: 50, right: -40, child: _buildCircle(120, 0.2)),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Patient Registration',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                        _buildInputField(
+                          label: 'Name',
+                          controller: _nameController,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Enter your name'
+                                      : null,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildInputField(
+                          label: 'Email',
+                          controller: _emailController,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Enter your email'
+                                      : null,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildInputField(
+                          label: 'Password',
+                          controller: _passwordController,
+                          obscureText: true,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Enter a password'
+                                      : null,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildInputField(
+                          label: 'Confirm Password',
+                          controller: _confirmPasswordController,
+                          obscureText: true,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Confirm password';
+                            }
+                            if (value != _passwordController.text) {
+                              return 'Passwords do not match';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 30),
+                        _buildSignUpButton(),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context); // Navigate back to login
+                          },
+                          child: const Text(
+                            'Have an account? Log in',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCircle(double radius, double opacity) {
+    return Container(
+      width: radius,
+      height: radius,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(opacity),
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController controller,
+    bool obscureText = false,
+    required String? Function(String?) validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30),
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        style: const TextStyle(color: Colors.white, fontSize: 18),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(
+            color: Colors.white70,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.2),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 15,
+          ),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
+  Widget _buildSignUpButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _isRegisterPressed ? null : _registerPatient,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6B5B95),
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+          ),
+          child: const Text(
+            'Sign Up',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
       ),
     );
   }
 }
+
+// Inside main.dart — Just the PatientDashboardPage
 
 class PatientDashboardPage extends StatefulWidget {
   const PatientDashboardPage({super.key});
@@ -888,27 +1421,20 @@ class PatientDashboardPage extends StatefulWidget {
 class _PatientDashboardPageState extends State<PatientDashboardPage> {
   final user = FirebaseAuth.instance.currentUser;
   Timer? _locationUpdateTimer;
-  int remembered = 0;
-  int forgotten = 0;
   bool _isLoading = false;
   String? _errorMessage;
   List<String> _timeWindows = ['7 days', '30 days', 'All time'];
   String _selectedWindow = '7 days';
-  int totalAttempts = 0;
-  double rememberedPercent = 0;
-  double forgottenPercent = 0;
+  int remembered = 0, forgotten = 0, totalAttempts = 0;
+  double rememberedPercent = 0, forgottenPercent = 0;
+  List<DocumentSnapshot> _todayRoutines = [];
 
   @override
   void initState() {
     super.initState();
     _startLocationUpdates();
     _analyzeQuizResults();
-  }
-
-  @override
-  void dispose() {
-    _locationUpdateTimer?.cancel();
-    super.dispose();
+    _fetchTodayRoutines();
   }
 
   Future<void> _startLocationUpdates() async {
@@ -975,26 +1501,19 @@ class _PatientDashboardPageState extends State<PatientDashboardPage> {
               .get();
 
       final now = DateTime.now();
-      remembered = 0;
-      forgotten = 0;
-      totalAttempts = 0;
+      remembered = forgotten = totalAttempts = 0;
 
       for (var doc in scoresSnap.docs) {
         final ts = doc['timestamp'].toDate();
-        bool inWindow =
+        final inWindow =
             _selectedWindow == '7 days'
                 ? now.difference(ts).inDays < 7
                 : _selectedWindow == '30 days'
                 ? now.difference(ts).inDays < 30
                 : true;
-
         if (inWindow) {
           totalAttempts++;
-          if (doc['score'] > 0) {
-            remembered++;
-          } else {
-            forgotten++;
-          }
+          doc['score'] > 0 ? remembered++ : forgotten++;
         }
       }
 
@@ -1002,10 +1521,7 @@ class _PatientDashboardPageState extends State<PatientDashboardPage> {
           totalAttempts > 0 ? (remembered / totalAttempts) * 100 : 0;
       forgottenPercent =
           totalAttempts > 0 ? (forgotten / totalAttempts) * 100 : 0;
-
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -1014,160 +1530,294 @@ class _PatientDashboardPageState extends State<PatientDashboardPage> {
     }
   }
 
+  Future<void> _fetchTodayRoutines() async {
+    if (user == null) return;
+    final routines =
+        await FirebaseFirestore.instance
+            .collection('patients')
+            .doc(user!.uid)
+            .collection('routines')
+            .orderBy('createdAt', descending: true)
+            .get();
+
+    final today = DateFormat('EEE').format(DateTime.now());
+    final filtered =
+        routines.docs.where((doc) {
+          final days = List.from(doc['days'] ?? []);
+          return days.contains(today);
+        }).toList();
+
+    setState(() {
+      _todayRoutines = filtered;
+    });
+  }
+
+  @override
+  void dispose() {
+    _locationUpdateTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final String patientUid = user?.uid ?? 'Unavailable';
+    final uid = user?.uid ?? 'Unknown';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Patient Dashboard')),
+      backgroundColor: const Color(0xFFFFE4E6), // Pale pink background
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Patient Dashboard',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(20),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Your UID: $patientUid',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.copy),
-                            onPressed: () {
-                              Clipboard.setData(
-                                ClipboardData(text: patientUid),
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('UID copied to clipboard!'),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                    _buildUidCard(uid),
+                    const SizedBox(height: 20),
+                    _buildMemoryStats(),
+                    const SizedBox(height: 20),
+                    _buildRoutineSummaryBanner(),
+                    const SizedBox(height: 10),
+                    _buildRoutineCards(),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Features',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
                       ),
                     ),
-                    Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                    const SizedBox(height: 10),
+                    _buildFeatureButtons(context),
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: 20),
+                      Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red, fontSize: 16),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Memory Recall Analysis',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 22,
-                              ),
-                            ),
-                            DropdownButton<String>(
-                              value: _selectedWindow,
-                              items:
-                                  _timeWindows.map((w) {
-                                    return DropdownMenuItem(
-                                      value: w,
-                                      child: Text(w),
-                                    );
-                                  }).toList(),
-                              onChanged: (w) {
-                                if (w != null) {
-                                  setState(() => _selectedWindow = w);
-                                  _analyzeQuizResults();
-                                }
-                              },
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Remembered: $remembered (${rememberedPercent.toStringAsFixed(1)}%)',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                color: Colors.green,
-                              ),
-                            ),
-                            Text(
-                              'Forgotten: $forgotten (${forgottenPercent.toStringAsFixed(1)}%)',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                color: Colors.redAccent,
-                              ),
-                            ),
-                            Text(
-                              'Total Attempts: $totalAttempts',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 1.1,
-                      children: [
-                        DashboardFeatureCard(
-                          icon: Icons.photo_album,
-                          label: 'Memories',
-                          onTap:
-                              () => Navigator.pushNamed(
-                                context,
-                                '/patient/memories',
-                              ),
-                        ),
-                        DashboardFeatureCard(
-                          icon: Icons.quiz,
-                          label: 'Memory Quiz Game',
-                          onTap:
-                              () =>
-                                  Navigator.pushNamed(context, '/patient/quiz'),
-                        ),
-                        DashboardFeatureCard(
-                          icon: Icons.schedule,
-                          label: 'My Routines',
-                          onTap:
-                              () => Navigator.pushNamed(
-                                context,
-                                '/patient/routines',
-                              ),
-                        ),
-                        DashboardFeatureCard(
-                          icon: Icons.chat_bubble_outline,
-                          label: 'Medical AI Chatbot',
-                          onTap:
-                              () => Navigator.pushNamed(
-                                context,
-                                '/patient/chatbot',
-                              ),
-                        ),
-                      ],
-                    ),
+                    ],
                   ],
                 ),
               ),
     );
   }
+
+  Widget _buildUidCard(String uid) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(
+        0.9,
+      ), // Slightly translucent for glassy effect
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.2),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Your UID: $uid',
+            style: const TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.copy, color: Colors.black),
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: uid));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('UID copied to clipboard!')),
+            );
+          },
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildMemoryStats() => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(
+        0.9,
+      ), // Slightly translucent for glassy effect
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.2),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '🧠 Memory Recall Analysis',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 10),
+        DropdownButton<String>(
+          value: _selectedWindow,
+          items:
+              _timeWindows.map((w) {
+                return DropdownMenuItem(value: w, child: Text(w));
+              }).toList(),
+          onChanged: (w) {
+            if (w != null) {
+              setState(() => _selectedWindow = w);
+              _analyzeQuizResults();
+            }
+          },
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Remembered: $remembered (${rememberedPercent.toStringAsFixed(1)}%)',
+          style: const TextStyle(color: Colors.black87),
+        ),
+        Text(
+          'Forgotten: $forgotten (${forgottenPercent.toStringAsFixed(1)}%)',
+          style: const TextStyle(color: Colors.black87),
+        ),
+        Text(
+          'Total Attempts: $totalAttempts',
+          style: const TextStyle(color: Colors.black87),
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildRoutineSummaryBanner() => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(
+        0.9,
+      ), // Slightly translucent for glassy effect
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.2),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Text(
+      '📅 ${_todayRoutines.length} routine(s) scheduled for today!',
+      style: const TextStyle(fontSize: 16, color: Colors.black),
+    ),
+  );
+
+  Widget _buildRoutineCards() => Column(
+    children:
+        _todayRoutines.map((routine) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(
+                0.9,
+              ), // Slightly translucent for glassy effect
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  routine['title'] ?? 'Untitled',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                if (routine['time'] != null)
+                  Text(
+                    '🕒 Time: ${routine['time']}',
+                    style: const TextStyle(color: Colors.black87),
+                  ),
+                if (routine['repeat'] != null)
+                  Text(
+                    '🔁 Repeat: ${routine['repeat']}',
+                    style: const TextStyle(color: Colors.black87),
+                  ),
+                if (routine['notes'] != null)
+                  Text(
+                    '📝 Notes: ${routine['notes']}',
+                    style: const TextStyle(color: Colors.black87),
+                  ),
+              ],
+            ),
+          );
+        }).toList(),
+  );
+
+  Widget _buildFeatureButtons(BuildContext context) => GridView.count(
+    crossAxisCount: 2,
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    mainAxisSpacing: 16,
+    crossAxisSpacing: 16,
+    childAspectRatio: 1.2,
+    children: [
+      DashboardFeatureCard(
+        icon: Icons.photo_album,
+        label: 'Memories',
+        onTap: () => Navigator.pushNamed(context, '/patient/memories'),
+      ),
+      DashboardFeatureCard(
+        icon: Icons.quiz,
+        label: 'Memory Quiz',
+        onTap: () => Navigator.pushNamed(context, '/patient/quiz'),
+      ),
+      DashboardFeatureCard(
+        icon: Icons.schedule,
+        label: 'My Routines',
+        onTap: () => Navigator.pushNamed(context, '/patient/routines'),
+      ),
+      DashboardFeatureCard(
+        icon: Icons.chat_bubble_outline,
+        label: 'Medical Chatbot',
+        onTap: () => Navigator.pushNamed(context, '/patient/chatbot'),
+      ),
+    ],
+  );
 }
 
 class DashboardFeatureCard extends StatefulWidget {
@@ -1199,17 +1849,17 @@ class _DashboardFeatureCardState extends State<DashboardFeatureCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Colors.white.withOpacity(0.2), // Glassy effect
             borderRadius: BorderRadius.circular(12),
             border:
                 _hovering
-                    ? Border.all(color: Colors.blueAccent, width: 2)
-                    : Border.all(color: Colors.transparent, width: 2),
+                    ? Border.all(color: Colors.black54, width: 1)
+                    : Border.all(color: Colors.transparent, width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.3),
+                color: Colors.grey.withOpacity(0.2),
                 blurRadius: 6,
-                offset: const Offset(0, 4),
+                offset: const Offset(0, 2),
               ),
             ],
           ),
@@ -1217,13 +1867,14 @@ class _DashboardFeatureCardState extends State<DashboardFeatureCard> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(widget.icon, size: 48, color: Colors.blue),
-              const SizedBox(height: 12),
+              Icon(widget.icon, size: 40, color: Colors.black),
+              const SizedBox(height: 10),
               Text(
                 widget.label,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
+                  color: Colors.black,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -2803,8 +3454,8 @@ class _GuardianEditRoutinePageState extends State<GuardianEditRoutinePage> {
 
 final defaultGeminiApiKey = 'AIzaSyD2jKT9WzrhlJ6UsfuzByaQMbO2XKIPFys';
 final defaultGeminiModel = 'gemini-2.5-pro-exp-03-25';
-final grokApiKey = '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';
-final grokModel = 'llama-3.3-70b-versatile';
+final groqApiKey = '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';
+final groqModel = 'llama-3.3-70b-versatile';
 
 class MedicalAIChatBotPage extends StatefulWidget {
   const MedicalAIChatBotPage({super.key});
@@ -2821,7 +3472,7 @@ class _MedicalAIChatBotPageState extends State<MedicalAIChatBotPage>
   String? _errorMessage;
 
   final String _flaskApiUrl =
-      'http://192.168.214.28:5001/chat'; // Adjust for your environment
+      'http://192.168.1.6:5001/chat'; // Adjust for your environment
   late AnimationController _animationController;
   late Animation<double> _jumpAnimation1;
   late Animation<double> _jumpAnimation2;

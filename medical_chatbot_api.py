@@ -3,7 +3,7 @@ import requests
 
 app = Flask(__name__)
 
-GROQ_API_KEY = "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"
+GROQ_API_KEY = "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"
 GROQ_MODEL = "llama3-70b-8192"
 
 @app.route('/chat', methods=['POST'])
