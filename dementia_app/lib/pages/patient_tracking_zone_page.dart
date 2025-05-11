@@ -1,5 +1,3 @@
-// File: lib/pages/patient_tracking_zone_page.dart
-
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -8,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'dart:ui';
 
 class PatientTrackingZonePage extends StatefulWidget {
   final String patientUid;
@@ -37,6 +36,19 @@ class _PatientTrackingZonePageState extends State<PatientTrackingZonePage> {
   List<Map<String, dynamic>> _triggeredAlerts = [];
   bool _isZoneSaved = false;
   FlutterLocalNotificationsPlugin? _localNotifications;
+
+  // Define colors from the provided palette
+  final Color backgroundColorSolid = const Color(0xFFF9EFE5); // Brand Beige
+  final Color buttonColor = const Color(0xFF000000); // Black for buttons
+  final Color accentColor = const Color(0xFFFF6F61); // Coral for alerts
+  final Color textColorPrimary = const Color(0xFF000000); // Brand Black
+  final Color textColorSecondary = const Color(
+    0xFF7F8790,
+  ); // Base Muted Gray-Blue
+  final Color cardBackgroundColor = const Color(0xFFF8F8F8); // Base Light Gray
+  final Color glassyOverlayColor = const Color(
+    0xFF000000,
+  ); // Black for glassy effect
 
   @override
   void initState() {
@@ -94,16 +106,33 @@ class _PatientTrackingZonePageState extends State<PatientTrackingZonePage> {
       context: context,
       builder:
           (_) => AlertDialog(
-            backgroundColor: Colors.red[50],
+            backgroundColor: cardBackgroundColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+              side: BorderSide(
+                color: glassyOverlayColor.withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
             title: const Text(
               '🚨 EMERGENCY ALERT 🚨',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Color(0xFFFF6F61),
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
             ),
-            content: Text('${widget.patientName} has exited the safe zone!'),
+            content: Text(
+              '${widget.patientName} has exited the safe zone!',
+              style: const TextStyle(color: Color(0xFF000000), fontSize: 16),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Dismiss'),
+                child: const Text(
+                  'Dismiss',
+                  style: TextStyle(color: Color(0xFF7F8790), fontSize: 16),
+                ),
               ),
             ],
           ),
@@ -186,7 +215,7 @@ class _PatientTrackingZonePageState extends State<PatientTrackingZonePage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.9:5000/send_alert'), // update if needed
+        Uri.parse('http://192.168.1.9:5000/send_alert'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'to': guardianToken,
@@ -224,7 +253,7 @@ class _PatientTrackingZonePageState extends State<PatientTrackingZonePage> {
             _patientMarker = Marker(
               markerId: const MarkerId('patient'),
               position: pos,
-              infoWindow: const InfoWindow(title: 'Patient'),
+              infoWindow: InfoWindow(title: widget.patientName),
             );
           });
           _mapController?.animateCamera(CameraUpdate.newLatLng(pos));
@@ -251,6 +280,7 @@ class _PatientTrackingZonePageState extends State<PatientTrackingZonePage> {
           strokeColor: Colors.green,
           strokeWidth: 2,
         );
+        _isZoneSaved = true;
       });
     }
   }
@@ -281,7 +311,14 @@ class _PatientTrackingZonePageState extends State<PatientTrackingZonePage> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Safe zone saved successfully')),
+      SnackBar(
+        content: const Text('Safe zone saved successfully'),
+        backgroundColor: accentColor,
+        behavior: SnackBarBehavior.floating,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(10)),
+        ),
+      ),
     );
   }
 
@@ -301,125 +338,460 @@ class _PatientTrackingZonePageState extends State<PatientTrackingZonePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Track & Setup Safe Zone')),
-      body:
-          _patientLocation == null
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
-                children: [
-                  SizedBox(
-                    height: 350,
-                    child: GoogleMap(
-                      initialCameraPosition: CameraPosition(
-                        target: _patientLocation!,
-                        zoom: 17,
-                      ),
-                      markers: _patientMarker != null ? {_patientMarker!} : {},
-                      circles:
-                          _safeZoneCircle != null ? {_safeZoneCircle!} : {},
-                      onMapCreated: (controller) => _mapController = controller,
-                      onTap: (LatLng tapped) {
-                        setState(() {
-                          _safeZoneCenter = tapped;
-                          _safeZoneCircle = Circle(
-                            circleId: const CircleId('safe_zone'),
-                            center: tapped,
-                            radius: _safeZoneRadius,
-                            fillColor: Colors.green.withOpacity(0.3),
-                            strokeColor: Colors.green,
-                            strokeWidth: 2,
-                          );
-                        });
-                      },
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.only(top: 10),
-                    child: Text("Adjust Safe Zone Radius (in meters)"),
-                  ),
-                  Slider(
-                    value: _safeZoneRadius,
-                    min: 50,
-                    max: 1000,
-                    divisions: 19,
-                    label: _safeZoneRadius.round().toString(),
-                    onChanged: (value) {
-                      setState(() {
-                        _safeZoneRadius = value;
-                        if (_safeZoneCenter != null) {
-                          _safeZoneCircle = Circle(
-                            circleId: const CircleId('safe_zone'),
-                            center: _safeZoneCenter!,
-                            radius: _safeZoneRadius,
-                            fillColor: Colors.green.withOpacity(0.3),
-                            strokeColor: Colors.green,
-                            strokeWidth: 2,
-                          );
-                        }
-                      });
-                    },
-                  ),
-                  ElevatedButton(
-                    onPressed: _saveSafeZone,
-                    child: const Text('Save Selected Location as Safe Zone'),
-                  ),
-                  if (_isZoneSaved)
-                    const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text('✅ Safe zone saved'),
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.warning),
-                      label: const Text('Send Test Alert (Manual)'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () async {
-                        if (_guardianUid != null && _patientLocation != null) {
-                          await _triggerAlert(
-                            widget.patientUid,
-                            widget.patientName,
-                            _guardianUid!,
-                            _patientLocation!.latitude,
-                            _patientLocation!.longitude,
-                          );
-                          await _sendLocalNotification();
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Missing guardian or patient location',
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                  const Divider(),
-                  const Text(
-                    'Triggered Alerts',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _triggeredAlerts.length,
-                      itemBuilder: (context, index) {
-                        final a = _triggeredAlerts[index];
-                        final ts = (a['timestamp'] as Timestamp?)?.toDate();
-                        return ListTile(
-                          title: Text('Lat: ${a['lat']}, Lng: ${a['lng']}'),
-                          subtitle: Text(ts?.toLocal().toString() ?? '...'),
-                          leading: const Icon(Icons.warning, color: Colors.red),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Track & Setup Safe Zone',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF000000),
+            shadows: [
+              Shadow(
+                color: Colors.black26,
+                blurRadius: 5,
+                offset: Offset(0, 2),
               ),
+            ],
+          ),
+        ),
+        flexibleSpace: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(color: glassyOverlayColor.withOpacity(0.1)),
+          ),
+        ),
+      ),
+      body: Container(
+        color: backgroundColorSolid,
+        child:
+            _patientLocation == null
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 90, 20, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Interactive Google Maps box with black glassy effect
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                          child: Container(
+                            height: 350,
+                            decoration: BoxDecoration(
+                              color: cardBackgroundColor.withOpacity(0.9),
+                              border: Border.all(
+                                color: glassyOverlayColor.withOpacity(0.3),
+                                width: 1.5,
+                              ),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: GoogleMap(
+                              initialCameraPosition: CameraPosition(
+                                target: _patientLocation!,
+                                zoom: 17,
+                              ),
+                              markers:
+                                  _patientMarker != null
+                                      ? {_patientMarker!}
+                                      : {},
+                              circles:
+                                  _safeZoneCircle != null
+                                      ? {_safeZoneCircle!}
+                                      : {},
+                              onMapCreated:
+                                  (controller) => _mapController = controller,
+                              onTap: (LatLng tapped) {
+                                setState(() {
+                                  _safeZoneCenter = tapped;
+                                  _safeZoneCircle = Circle(
+                                    circleId: const CircleId('safe_zone'),
+                                    center: tapped,
+                                    radius: _safeZoneRadius,
+                                    fillColor: Colors.green.withOpacity(0.3),
+                                    strokeColor: Colors.green,
+                                    strokeWidth: 2,
+                                  );
+                                  _isZoneSaved = false;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      // Safe zone controls with black glassy effect
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                          child: Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: cardBackgroundColor.withOpacity(0.9),
+                              border: Border.all(
+                                color: glassyOverlayColor.withOpacity(0.3),
+                                width: 1.5,
+                              ),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Adjust Safe Zone',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF000000),
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black26,
+                                        blurRadius: 3,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 15),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.adjust,
+                                      color: Color(0xFF7F8790),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        'Radius: ${_safeZoneRadius.round()} meters',
+                                        style: const TextStyle(
+                                          color: Color(0xFF000000),
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                Slider(
+                                  value: _safeZoneRadius,
+                                  min: 50,
+                                  max: 1000,
+                                  divisions: 19,
+                                  label: _safeZoneRadius.round().toString(),
+                                  activeColor: Colors.green,
+                                  inactiveColor: Colors.green.withOpacity(0.3),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _safeZoneRadius = value;
+                                      if (_safeZoneCenter != null) {
+                                        _safeZoneCircle = Circle(
+                                          circleId: const CircleId('safe_zone'),
+                                          center: _safeZoneCenter!,
+                                          radius: _safeZoneRadius,
+                                          fillColor: Colors.green.withOpacity(
+                                            0.3,
+                                          ),
+                                          strokeColor: Colors.green,
+                                          strokeWidth: 2,
+                                        );
+                                        _isZoneSaved = false;
+                                      }
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 20),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(
+                                      sigmaX: 3,
+                                      sigmaY: 3,
+                                    ),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: glassyOverlayColor.withOpacity(
+                                            0.3,
+                                          ),
+                                          width: 1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: ElevatedButton(
+                                        onPressed: _saveSafeZone,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: buttonColor,
+                                          foregroundColor: backgroundColorSolid,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 40,
+                                            vertical: 15,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          elevation: 0,
+                                        ).copyWith(
+                                          overlayColor: WidgetStateProperty.all(
+                                            glassyOverlayColor.withOpacity(0.2),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Save Safe Zone',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                if (_isZoneSaved)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 15),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: Color(0xFF7F8790),
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          'Safe zone saved',
+                                          style: TextStyle(
+                                            color: textColorSecondary,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      // Send Test Alert button with black glassy effect
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: glassyOverlayColor.withOpacity(0.3),
+                                width: 1,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.warning),
+                              label: const Text(
+                                'Send Test Alert',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: accentColor,
+                                foregroundColor: backgroundColorSolid,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 40,
+                                  vertical: 15,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                elevation: 0,
+                              ).copyWith(
+                                overlayColor: WidgetStateProperty.all(
+                                  glassyOverlayColor.withOpacity(0.2),
+                                ),
+                              ),
+                              onPressed: () async {
+                                if (_guardianUid != null &&
+                                    _patientLocation != null) {
+                                  await _triggerAlert(
+                                    widget.patientUid,
+                                    widget.patientName,
+                                    _guardianUid!,
+                                    _patientLocation!.latitude,
+                                    _patientLocation!.longitude,
+                                  );
+                                  await _sendLocalNotification();
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text(
+                                        'Missing guardian or patient location',
+                                      ),
+                                      backgroundColor: accentColor,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(10),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      // Triggered Alerts section with black glassy effect
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                          child: Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: cardBackgroundColor.withOpacity(0.9),
+                              border: Border.all(
+                                color: glassyOverlayColor.withOpacity(0.3),
+                                width: 1.5,
+                              ),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Triggered Alerts',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF000000),
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black26,
+                                        blurRadius: 3,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                _triggeredAlerts.isEmpty
+                                    ? const Text(
+                                      'No alerts triggered yet.',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Color(0xFF7F8790),
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    )
+                                    : ListView.builder(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemCount: _triggeredAlerts.length,
+                                      itemBuilder: (context, index) {
+                                        final a = _triggeredAlerts[index];
+                                        final ts =
+                                            (a['timestamp'] as Timestamp?)
+                                                ?.toDate();
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 15,
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            child: BackdropFilter(
+                                              filter: ImageFilter.blur(
+                                                sigmaX: 3,
+                                                sigmaY: 3,
+                                              ),
+                                              child: Container(
+                                                padding: const EdgeInsets.all(
+                                                  15,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: backgroundColorSolid
+                                                      .withOpacity(0.8),
+                                                  border: Border.all(
+                                                    color: glassyOverlayColor
+                                                        .withOpacity(0.3),
+                                                    width: 1,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.warning,
+                                                      color: Color(0xFFFF6F61),
+                                                      size: 20,
+                                                    ),
+                                                    const SizedBox(width: 15),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Text(
+                                                            'Lat: ${a['lat']}, Lng: ${a['lng']}',
+                                                            style:
+                                                                const TextStyle(
+                                                                  fontSize: 16,
+                                                                  color: Color(
+                                                                    0xFF000000,
+                                                                  ),
+                                                                ),
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 5,
+                                                          ),
+                                                          Text(
+                                                            ts
+                                                                    ?.toLocal()
+                                                                    .toString() ??
+                                                                '...',
+                                                            style:
+                                                                const TextStyle(
+                                                                  fontSize: 14,
+                                                                  color: Color(
+                                                                    0xFF7F8790,
+                                                                  ),
+                                                                ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+      ),
     );
   }
 }

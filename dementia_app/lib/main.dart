@@ -87,27 +87,38 @@ Future<void> _requestNotificationPermission() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   print('Before Firebase');
-  await Firebase.initializeApp();
-  print('Before AlarmManager');
-  await AndroidAlarmManager.initialize();
-  print('Before Firebase Messaging');
+  try {
+    await Firebase.initializeApp();
+    print('Before AlarmManager');
+    await AndroidAlarmManager.initialize();
+    print('Before Firebase Messaging');
 
-  // Initialize FCM
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    // Initialize FCM
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Request notification permissions
-  await _requestNotificationPermission();
+    // Request notification permissions
+    await _requestNotificationPermission();
 
-  // Get and print FCM token
-  final token = await FirebaseMessaging.instance.getToken();
-  print("🔔 FCM Token: $token");
+    // Get and print FCM token
+    final token = await FirebaseMessaging.instance.getToken();
+    print("🔔 FCM Token: $token");
 
-  // Subscribe to alerts topic
-  await FirebaseMessaging.instance.subscribeToTopic("alerts");
-  print("🔔 Subscribed to 'alerts' topic");
+    // Subscribe to alerts topic
+    await FirebaseMessaging.instance.subscribeToTopic("alerts");
+    print("🔔 Subscribed to 'alerts' topic");
 
-  print('Before runApp');
-  runApp(const MyApp());
+    print('Before runApp');
+    runApp(const MyApp());
+  } catch (e, stackTrace) {
+    print('Initialization failed: $e');
+    print('Stack trace: $stackTrace');
+    // Optionally, you can show an error screen or exit the app
+    runApp(
+      MaterialApp(
+        home: Scaffold(body: Center(child: Text('Initialization failed: $e'))),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatefulWidget {

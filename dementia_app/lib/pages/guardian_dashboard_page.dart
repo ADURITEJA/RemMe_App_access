@@ -14,6 +14,7 @@ import 'danger_zone_alerts_page.dart';
 import 'alerts_log_page.dart';
 import 'profile_page.dart';
 import 'guardian_routine_list_page.dart';
+import 'guardian_patient_progress_page.dart';
 
 class GuardianDashboardPage extends StatefulWidget {
   const GuardianDashboardPage({super.key});
@@ -33,6 +34,18 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
   late final AnimationController _animationController;
   late final AudioPlayer _audioPlayer;
   StreamSubscription<QuerySnapshot>? _unresolvedAlertSub;
+
+  // Define colors from the provided palette
+  final Color backgroundColorSolid = const Color(
+    0xFFF9EFE5,
+  ); // Brand Beige for solid background
+  final Color gridItemColor = const Color(0xFF000000); // Black for grid items
+  final Color accentColor = const Color(0xFFFF6F61); // Derived Coral for alerts
+  final Color textColorPrimary = const Color(0xFF000000); // Brand Black
+  final Color textColorSecondary = const Color(
+    0xFF7F8790,
+  ); // Base Muted Gray-Blue
+  final Color cardBackgroundColor = const Color(0xFFF8F8F8); // Base Light Gray
 
   @override
   void initState() {
@@ -56,40 +69,57 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
   }
 
   Future<void> _loadLinkedPatients() async {
-    final guardianUid = FirebaseAuth.instance.currentUser!.uid;
-    setState(() => _isLoading = true);
+    try {
+      final guardianUid = FirebaseAuth.instance.currentUser!.uid;
+      setState(() => _isLoading = true);
 
-    final snapshot =
-        await FirebaseFirestore.instance
-            .collection('guardians')
-            .doc(guardianUid)
-            .collection('linkedPatients')
-            .get();
+      final snapshot =
+          await FirebaseFirestore.instance
+              .collection('guardians')
+              .doc(guardianUid)
+              .collection('linkedPatients')
+              .get();
 
-    final prefs = await SharedPreferences.getInstance();
-    final cachedUid = prefs.getString('lastSelectedPatientUid');
+      final prefs = await SharedPreferences.getInstance();
+      final cachedUid = prefs.getString('lastSelectedPatientUid');
 
-    final newLinkedPatients =
-        snapshot.docs.map((doc) {
-          final data = doc.data();
-          return {
-            'uid': doc.id,
-            'name': data['name'] ?? 'Unnamed',
-            'photoUrl': data['photoUrl'] ?? '',
-          };
-        }).toList();
+      final newLinkedPatients =
+          snapshot.docs.map((doc) {
+            final data = doc.data();
+            return {
+              'uid': doc.id,
+              'name': data['name'] ?? 'Unnamed',
+              'photoUrl': data['photoUrl'] ?? '',
+            };
+          }).toList();
 
-    if (newLinkedPatients.any((p) => p['uid'] == cachedUid)) {
-      _selectedPatientUid = cachedUid;
-    } else if (newLinkedPatients.isNotEmpty) {
-      _selectedPatientUid = newLinkedPatients.last['uid'];
-      await _saveLastSelectedPatient(_selectedPatientUid!);
+      if (newLinkedPatients.any((p) => p['uid'] == cachedUid)) {
+        _selectedPatientUid = cachedUid;
+      } else if (newLinkedPatients.isNotEmpty) {
+        _selectedPatientUid = newLinkedPatients.last['uid'];
+        await _saveLastSelectedPatient(_selectedPatientUid!);
+      }
+
+      setState(() {
+        _linkedPatients = newLinkedPatients;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error loading patients: $e',
+            style: const TextStyle(fontSize: 16, color: Colors.white),
+          ),
+          backgroundColor: accentColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
     }
-
-    setState(() {
-      _linkedPatients = newLinkedPatients;
-      _isLoading = false;
-    });
   }
 
   Future<void> _saveLastSelectedPatient(String uid) async {
@@ -98,41 +128,57 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
   }
 
   void _setupFirebaseMessaging() async {
-    final token = await FirebaseMessaging.instance.getToken();
-    if (token != null) {
-      await FirebaseFirestore.instance
-          .collection('guardians')
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .set({'fcmToken': token}, SetOptions(merge: true));
-    }
-
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      final data = message.data;
-      await _audioPlayer.play(AssetSource('sounds/alert_sound.wav'));
-
-      if (data.containsKey('alertId')) {
-        final alertId = data['alertId'];
-        final patientName = data['patientName'] ?? 'Unknown';
-        final lat = double.tryParse(data['lat'] ?? '');
-        final lng = double.tryParse(data['lng'] ?? '');
-        final timestamp = DateTime.tryParse(data['timestamp'] ?? '');
-
-        if (lat != null && lng != null && timestamp != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (_) => DangerZoneAlertsPage(
-                    alertId: alertId,
-                    patientName: patientName,
-                    alertLocation: LatLng(lat, lng),
-                    alertTime: timestamp,
-                  ),
-            ),
-          );
-        }
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        await FirebaseFirestore.instance
+            .collection('guardians')
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .set({'fcmToken': token}, SetOptions(merge: true));
       }
-    });
+
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+        final data = message.data;
+        await _audioPlayer.play(AssetSource('sounds/alert_sound.wav'));
+
+        if (data.containsKey('alertId')) {
+          final alertId = data['alertId'];
+          final patientName = data['patientName'] ?? 'Unknown';
+          final lat = double.tryParse(data['lat'] ?? '');
+          final lng = double.tryParse(data['lng'] ?? '');
+          final timestamp = DateTime.tryParse(data['timestamp'] ?? '');
+
+          if (lat != null && lng != null && timestamp != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (_) => DangerZoneAlertsPage(
+                      alertId: alertId,
+                      patientName: patientName,
+                      alertLocation: LatLng(lat, lng),
+                      alertTime: timestamp,
+                    ),
+              ),
+            );
+          }
+        }
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error setting up notifications: $e',
+            style: const TextStyle(fontSize: 16, color: Colors.white),
+          ),
+          backgroundColor: accentColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
   }
 
   void _watchUnresolvedAlerts() {
@@ -163,12 +209,27 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Guardian Dashboard'),
+        title: const Text(
+          'Guardian Dashboard',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF000000),
+            shadows: [
+              Shadow(
+                color: Colors.black26,
+                blurRadius: 5,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+        ),
+        flexibleSpace: Container(color: backgroundColorSolid),
         actions: [
           IconButton(
             icon: Stack(
               children: [
-                const Icon(Icons.notifications),
+                Icon(Icons.notifications, color: textColorPrimary, size: 28),
                 if (_hasUnresolvedAlerts)
                   FadeTransition(
                     opacity: _animationController,
@@ -178,7 +239,7 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
                       child: Icon(
                         Icons.brightness_1,
                         size: 12,
-                        color: Colors.red,
+                        color: Color(0xFFFF6F61),
                       ),
                     ),
                   ),
@@ -192,41 +253,48 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
             },
           ),
           IconButton(
-            icon: const Icon(Icons.account_circle),
+            icon: Icon(Icons.account_circle, color: textColorPrimary, size: 28),
             onPressed: () async {
-              final uid = FirebaseAuth.instance.currentUser!.uid;
-              final doc =
-                  await FirebaseFirestore.instance
-                      .collection('guardians')
-                      .doc(uid)
-                      .get();
-              final profileData = doc.data() ?? {};
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ProfilePage(profileData: profileData),
-                ),
-              );
+              try {
+                final uid = FirebaseAuth.instance.currentUser!.uid;
+                final doc =
+                    await FirebaseFirestore.instance
+                        .collection('guardians')
+                        .doc(uid)
+                        .get();
+                final profileData = doc.data() ?? {};
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProfilePage(profileData: profileData),
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Error loading profile: $e',
+                      style: const TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                    backgroundColor: accentColor,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                );
+              }
             },
           ),
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFFB5F2EA),
-              Color(0xFFB8D9F8),
-              Color(0xFFE4B5F2),
-              Color(0xFFFAD6D6),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+        color: backgroundColorSolid,
         child:
             _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(
+                  child: CircularProgressIndicator(color: textColorPrimary),
+                )
                 : SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(20, 100, 20, 30),
                   child: Column(
@@ -234,14 +302,21 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
                       const Text(
                         '👩‍⚕️ Welcome, Guardian!',
                         style: TextStyle(
-                          fontSize: 26,
+                          fontSize: 30,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Color(0xFF000000),
+                          shadows: [
+                            Shadow(
+                              color: Colors.black26,
+                              blurRadius: 5,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 40),
                       _buildSearchAndDropdown(filteredPatients),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 40),
                       _buildFeatureButtons(),
                     ],
                   ),
@@ -251,56 +326,139 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
   }
 
   Widget _buildSearchAndDropdown(List<Map<String, dynamic>> filteredPatients) {
-    return Column(
-      children: [
-        TextField(
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.purple[50],
-            hintText: 'Search patients...',
-            prefixIcon: const Icon(Icons.search),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(25),
+        decoration: BoxDecoration(
+          color: cardBackgroundColor.withOpacity(0.9),
+          border: Border.all(
+            color: textColorSecondary.withOpacity(0.3),
+            width: 1.5,
           ),
-          onChanged: (val) => setState(() => _searchQuery = val),
-        ),
-        const SizedBox(height: 16),
-        _linkedPatients.isEmpty
-            ? const Text(
-              'No patients linked yet.',
-              style: TextStyle(color: Colors.white),
-            )
-            : DropdownButton<String>(
-              value: _selectedPatientUid,
-              isExpanded: true,
-              dropdownColor: Colors.pink[50],
-              items:
-                  filteredPatients.map((patient) {
-                    return DropdownMenuItem<String>(
-                      value: patient['uid'],
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundImage:
-                                patient['photoUrl'].isNotEmpty
-                                    ? NetworkImage(patient['photoUrl'])
-                                    : null,
-                            child:
-                                patient['photoUrl'].isEmpty
-                                    ? const Icon(Icons.person)
-                                    : null,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(patient['name']),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-              onChanged: (val) {
-                setState(() => _selectedPatientUid = val);
-                if (val != null) _saveLastSelectedPatient(val);
-              },
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: textColorSecondary.withOpacity(0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
             ),
-      ],
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Select Patient',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF000000),
+                shadows: [
+                  Shadow(
+                    color: Colors.black26,
+                    blurRadius: 3,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              style: const TextStyle(fontSize: 16, color: Color(0xFF000000)),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Color(0xFF7F8790).withOpacity(0.1),
+                hintText: 'Search patients...',
+                hintStyle: const TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF7F8790),
+                ),
+                prefixIcon: const Icon(Icons.search, color: Color(0xFF7F8790)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: textColorSecondary.withOpacity(0.5),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: textColorSecondary.withOpacity(0.5),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF7F8790),
+                    width: 1.5,
+                  ),
+                ),
+              ),
+              onChanged: (val) => setState(() => _searchQuery = val),
+            ),
+            const SizedBox(height: 20),
+            _linkedPatients.isEmpty
+                ? const Text(
+                  'No patients linked yet.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF000000),
+                    fontStyle: FontStyle.italic,
+                  ),
+                )
+                : DropdownButton<String>(
+                  value: _selectedPatientUid,
+                  isExpanded: true,
+                  dropdownColor: cardBackgroundColor,
+                  icon: const Icon(
+                    Icons.arrow_drop_down,
+                    color: Color(0xFF000000),
+                    size: 28,
+                  ),
+                  underline: const SizedBox(),
+                  items:
+                      filteredPatients.map((patient) {
+                        return DropdownMenuItem<String>(
+                          value: patient['uid'],
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundImage:
+                                    patient['photoUrl'].isNotEmpty
+                                        ? NetworkImage(patient['photoUrl'])
+                                        : null,
+                                child:
+                                    patient['photoUrl'].isEmpty
+                                        ? Icon(
+                                          Icons.person,
+                                          color: textColorPrimary,
+                                          size: 20,
+                                        )
+                                        : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                patient['name'],
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF7F8790),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                  onChanged: (val) {
+                    setState(() => _selectedPatientUid = val);
+                    if (val != null) _saveLastSelectedPatient(val);
+                  },
+                ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -308,12 +466,17 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
     final uid = _selectedPatientUid;
     final name = _getSelectedPatientName();
 
-    return Column(
+    return GridView.count(
+      crossAxisCount: 2,
+      crossAxisSpacing: 20,
+      mainAxisSpacing: 20,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      childAspectRatio: 1.3,
       children: [
         _buildButton(
           label: 'Add Patient',
           icon: Icons.person_add_alt,
-          color: Colors.pinkAccent,
           onTap: () {
             Navigator.push(
               context,
@@ -324,7 +487,6 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
         _buildButton(
           label: 'Safety Zone',
           icon: Icons.map,
-          color: Colors.teal,
           onTap:
               uid == null
                   ? () => _showNoPatientError(context)
@@ -344,7 +506,6 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
         _buildButton(
           label: 'View Routines',
           icon: Icons.list_alt,
-          color: Colors.orangeAccent,
           onTap:
               uid == null
                   ? () => _showNoPatientError(context)
@@ -358,6 +519,25 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
                     );
                   },
         ),
+        _buildButton(
+          label: 'Patient Progress',
+          icon: Icons.trending_up,
+          onTap:
+              uid == null
+                  ? () => _showNoPatientError(context)
+                  : () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (_) => GuardianPatientProgressPage(
+                              patientUid: uid,
+                              patientName: name,
+                            ),
+                      ),
+                    );
+                  },
+        ),
       ],
     );
   }
@@ -365,22 +545,52 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
   Widget _buildButton({
     required String label,
     required IconData icon,
-    required Color color,
     required VoidCallback onTap,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon),
-        label: Text(label),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: gridItemColor, // Use #000000 for border
+            width: 1,
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 28),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: ElevatedButton(
+          onPressed: onTap,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: gridItemColor, // Use #000000 for background
+            foregroundColor:
+                backgroundColorSolid, // Use #F9EFE5 for text/icon contrast
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+            elevation: 5,
+            shadowColor: gridItemColor.withOpacity(
+              0.2,
+            ), // Use #000000 for shadow
+          ).copyWith(
+            overlayColor: WidgetStateProperty.all(
+              gridItemColor.withOpacity(0.2),
+            ), // Use #000000 for overlay
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 28),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -388,7 +598,15 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
 
   void _showNoPatientError(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('❗ Please select a patient first.')),
+      SnackBar(
+        content: const Text(
+          '❗ Please select a patient first.',
+          style: TextStyle(fontSize: 16, color: Colors.white),
+        ),
+        backgroundColor: accentColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
 
