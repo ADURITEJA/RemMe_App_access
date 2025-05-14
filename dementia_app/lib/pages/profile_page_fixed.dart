@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -18,26 +19,13 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _ageController;
-  String gender = 'Not specified';
-  String? photoUrl;
+  final List<String> _genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
+  String gender = 'Prefer not to say';
   File? _newImage;
+  String photoUrl = '';
   bool _isSaving = false;
-
-  final List<String> _genderOptions = [
-    'Male',
-    'Female',
-    'Other',
-    'Not specified',
-  ];
-
-  // Uber-like color scheme
-  static const Color royalBlue = Color(0xFF1A237E);
-  static const Color quicksand = Color(0xFFF4A460);
-  static const Color swanWing = Color(0xFFF5F5F5);
-
-  // Derived colors
-  final Color backgroundColor = swanWing;
-  final Color cardColor = Colors.white;
+  final Color backgroundColor = Colors.grey[50]!;
+  final Color royalBlue = const Color(0xFF4361EE);
   final Color primaryText = const Color(0xFF1A1A1A);
   final Color secondaryText = const Color(0xFF666666);
   final Color dividerColor = const Color(0xFFE0E0E0);
@@ -45,127 +33,90 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(
-      text: widget.profileData['name'] ?? '',
-    );
-    _phoneController = TextEditingController(
-      text: widget.profileData['phone'] ?? '',
-    );
-    _ageController = TextEditingController(
-      text:
-          widget.profileData['age'] != null
-              ? widget.profileData['age'].toString()
-              : '',
-    );
-    gender = widget.profileData['gender'] ?? 'Not specified';
+    _nameController = TextEditingController(text: widget.profileData['name'] ?? '');
+    _phoneController = TextEditingController(text: widget.profileData['phone'] ?? '');
+    _ageController = TextEditingController(text: widget.profileData['age']?.toString() ?? '');
+    gender = widget.profileData['gender'] ?? 'Prefer not to say';
     photoUrl = widget.profileData['photoUrl'] ?? '';
   }
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (pickedFile != null) {
       setState(() {
-        _newImage = File(picked.path);
+        _newImage = File(pickedFile.path);
       });
+      await _uploadPhoto(_newImage!);
     }
   }
 
-  Future<String?> _uploadPhoto(File imageFile) async {
+  Future<void> _uploadPhoto(File imageFile) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      final ref = FirebaseStorage.instance.ref().child(
-        'profile_photos/$uid.jpg',
-      );
+      setState(() => _isSaving = true);
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
+
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('user_photos')
+          .child('$userId.jpg');
+      
       await ref.putFile(imageFile);
-      return await ref.getDownloadURL();
+      final url = await ref.getDownloadURL();
+      
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .update({'photoUrl': url});
+      
+      setState(() => photoUrl = url);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error uploading photo: $e'),
-          backgroundColor: quicksand,
-          behavior: SnackBarBehavior.floating,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
-          ),
-        ),
+        SnackBar(content: Text('Failed to upload photo: ${e.toString()}')),
       );
-      return null;
+    } finally {
+      setState(() => _isSaving = false);
     }
   }
 
   Future<void> _saveProfile() async {
-    setState(() {
-      _isSaving = true;
-    });
-
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    String? newPhotoUrl = photoUrl;
-
-    if (_newImage != null) {
-      final uploadedUrl = await _uploadPhoto(_newImage!);
-      if (uploadedUrl != null) {
-        newPhotoUrl = uploadedUrl;
-      } else {
-        setState(() {
-          _isSaving = false;
-        });
-        return; // Exit early if photo upload fails
-      }
-    }
-
     try {
-      await FirebaseFirestore.instance.collection('guardians').doc(uid).update({
-        'name': _nameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'age': int.tryParse(_ageController.text.trim()) ?? 0,
-        'gender': gender,
-        'photoUrl': newPhotoUrl,
-      });
+      setState(() => _isSaving = true);
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
 
-      setState(() {
-        photoUrl = newPhotoUrl;
-        _isSaving = false;
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'name': _nameController.text,
+        'phone': _phoneController.text,
+        'age': int.tryParse(_ageController.text) ?? 0,
+        'gender': gender,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Profile updated'),
-          backgroundColor: quicksand,
-          behavior: SnackBarBehavior.floating,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
-          ),
-        ),
+        const SnackBar(content: Text('Profile updated successfully')),
       );
     } catch (e) {
-      setState(() {
-        _isSaving = false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating profile: $e'),
-          backgroundColor: quicksand,
-          behavior: SnackBarBehavior.floating,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
-          ),
-        ),
+        SnackBar(content: Text('Failed to update profile: ${e.toString()}')),
       );
+    } finally {
+      setState(() => _isSaving = false);
     }
   }
 
-  Future<void> _logout() async {
+  void _logout() async {
     await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final ImageProvider<Object>? displayedImage =
-        _newImage != null
-            ? FileImage(_newImage!)
-            : (photoUrl != null && photoUrl!.isNotEmpty ? NetworkImage(photoUrl!) : null);
+    final displayedImage = _newImage != null
+        ? FileImage(_newImage!)
+        : (photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -194,9 +145,8 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 children: [
                   // Profile photo
-                  InkWell(
+                  GestureDetector(
                     onTap: _pickImage,
-                    borderRadius: BorderRadius.circular(50),
                     child: Stack(
                       children: [
                         Container(
@@ -204,30 +154,29 @@ class _ProfilePageState extends State<ProfilePage> {
                           height: 100,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
-                            boxShadow: const [
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 3,
+                            ),
+                            boxShadow: [
                               BoxShadow(
                                 color: Colors.black26,
                                 blurRadius: 10,
-                                offset: Offset(0, 4),
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
                           child: ClipOval(
-                            child:
-                                displayedImage != null
-                                    ? Image(
-                                      image: displayedImage,
-                                      fit: BoxFit.cover,
-                                    )
-                                    : Container(
-                                      color: Colors.grey[200],
-                                      child: Icon(
-                                        Icons.person,
-                                        size: 50,
-                                        color: Colors.grey[400],
-                                      ),
+                            child: displayedImage != null
+                                ? Image(image: displayedImage as ImageProvider, fit: BoxFit.cover)
+                                : Container(
+                                    color: Colors.grey[200],
+                                    child: Icon(
+                                      Icons.person,
+                                      size: 50,
+                                      color: Colors.grey[400],
                                     ),
+                                  ),
                           ),
                         ),
                         Positioned(
@@ -235,18 +184,18 @@ class _ProfilePageState extends State<ProfilePage> {
                           bottom: 0,
                           child: Container(
                             padding: const EdgeInsets.all(6),
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: Colors.white,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black26,
                                   blurRadius: 4,
-                                  offset: Offset(0, 2),
+                                  offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.camera_alt,
                               color: royalBlue,
                               size: 20,
@@ -291,16 +240,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 _buildListTile(
                   icon: Icons.person_outline,
                   title: 'Role',
-                  subtitle:
-                      (widget.profileData['role'] ?? 'N/A')
-                          .toString()
-                          .toUpperCase(),
+                  subtitle: (widget.profileData['role'] ?? 'N/A').toString().toUpperCase(),
                   showDivider: true,
                 ),
                 _buildListTile(
                   icon: Icons.calendar_today,
                   title: 'Member Since',
-                  subtitle: _formatMemberSince(),
+                  subtitle: 'May 2023',
                 ),
               ],
             ),
@@ -329,10 +275,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   showDivider: true,
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 16,
-                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -346,30 +289,19 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value:
-                            _genderOptions.contains(gender)
-                                ? gender
-                                : 'Not specified',
-                        items:
-                            _genderOptions
-                                .map(
-                                  (g) => DropdownMenuItem(
-                                    value: g,
-                                    child: Text(
-                                      g,
-                                      style: TextStyle(
-                                        color: primaryText,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                        value: _genderOptions.contains(gender) ? gender : null,
+                        items: _genderOptions.map((g) => DropdownMenuItem(
+                          value: g,
+                          child: Text(
+                            g,
+                            style: TextStyle(
+                              color: primaryText,
+                              fontSize: 16,
+                            ),
                           ),
+                        )).toList(),
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           filled: true,
                           fillColor: Colors.grey[100],
                           border: OutlineInputBorder(
@@ -382,18 +314,15 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: royalBlue,
-                              width: 1.5,
-                            ),
+                            borderSide: BorderSide(color: royalBlue, width: 1.5),
                           ),
-                          prefixIcon: const Icon(
-                            Icons.transgender,
-                            color: royalBlue,
-                          ),
+                          prefixIcon: Icon(Icons.transgender, color: royalBlue),
                         ),
                         dropdownColor: Colors.white,
-                        style: TextStyle(color: primaryText, fontSize: 16),
+                        style: TextStyle(
+                          color: primaryText,
+                          fontSize: 16,
+                        ),
                         onChanged: (val) {
                           if (val != null) setState(() => gender = val);
                         },
@@ -423,31 +352,32 @@ class _ProfilePageState extends State<ProfilePage> {
                         elevation: 2,
                         shadowColor: royalBlue.withOpacity(0.3),
                       ).copyWith(
-                        overlayColor: WidgetStateProperty.resolveWith<Color>(
-                          (states) =>
-                              states.contains(WidgetState.hovered)
-                                  ? royalBlue.withOpacity(0.9)
-                                  : royalBlue,
+                        overlayColor: MaterialStateProperty.resolveWith<Color>(
+                          (Set<MaterialState> states) {
+                            if (states.contains(MaterialState.hovered)) {
+                              return royalBlue.withOpacity(0.9);
+                            }
+                            return royalBlue;
+                          },
                         ),
                       ),
-                      child:
-                          _isSaving
-                              ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.5,
-                                ),
-                              )
-                              : const Text(
-                                'SAVE CHANGES',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.5,
-                                ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
                               ),
+                            )
+                          : const Text(
+                              'SAVE CHANGES',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -459,20 +389,19 @@ class _ProfilePageState extends State<ProfilePage> {
                       style: OutlinedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         foregroundColor: Colors.red,
-                        side: BorderSide(
-                          color: Colors.red.shade300,
-                          width: 1.5,
-                        ),
+                        side: BorderSide(color: Colors.red.shade300, width: 1.5),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ).copyWith(
-                        overlayColor: WidgetStateProperty.resolveWith<Color>(
-                          (states) =>
-                              states.contains(WidgetState.hovered)
-                                  ? Colors.red.withOpacity(0.05)
-                                  : Colors.transparent,
+                        overlayColor: MaterialStateProperty.resolveWith<Color>(
+                          (Set<MaterialState> states) {
+                            if (states.contains(MaterialState.hovered)) {
+                              return Colors.red.withOpacity(0.05);
+                            }
+                            return Colors.transparent;
+                          },
                         ),
                       ),
                       child: Row(
@@ -502,33 +431,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  String _formatMemberSince() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user?.metadata.creationTime != null) {
-      final creationDate = user!.metadata.creationTime!;
-      return '${_getMonthName(creationDate.month)} ${creationDate.year}';
-    }
-    return 'N/A';
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return months[month - 1];
-  }
-
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
@@ -555,7 +457,9 @@ class _ProfilePageState extends State<ProfilePage> {
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: Colors.grey.shade200, width: 1),
       ),
-      child: Column(children: children),
+      child: Column(
+        children: children,
+      ),
     );
   }
 
@@ -609,7 +513,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         if (showDivider)
-          Divider(height: 1, color: dividerColor, indent: 16, endIndent: 16),
+          Divider(height: 1, color: dividerColor, indent: 72, endIndent: 16),
       ],
     );
   }

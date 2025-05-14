@@ -1,20 +1,20 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:animated_text_kit/animated_text_kit.dart';
 
-import 'add_patient_page.dart';
-import 'patient_tracking_zone_page.dart';
-import 'danger_zone_alerts_page.dart';
 import 'alerts_log_page.dart';
 import 'profile_page.dart';
-import 'guardian_routine_list_page.dart';
 import 'guardian_patient_progress_page.dart';
+import 'live_patient_tracking_page.dart';
+import 'routine/routine_list_page.dart';
+import 'add_patient_page.dart';
+
+// Color Palette
+const Color royalBlue = Color(0xFF1A237E);
+const Color quicksand = Color(0xFFF4A460);
+const Color swanWing = Color(0xFFF5F5F5);
 
 class GuardianDashboardPage extends StatefulWidget {
   const GuardianDashboardPage({super.key});
@@ -32,39 +32,30 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
   bool _hasUnresolvedAlerts = false;
 
   late final AnimationController _animationController;
-  late final AudioPlayer _audioPlayer;
-  StreamSubscription<QuerySnapshot>? _unresolvedAlertSub;
 
-  // Define colors from the provided palette
-  final Color backgroundColorSolid = const Color(
-    0xFFF9EFE5,
-  ); // Brand Beige for solid background
-  final Color gridItemColor = const Color(0xFF000000); // Black for grid items
-  final Color accentColor = const Color(0xFFFF6F61); // Derived Coral for alerts
-  final Color textColorPrimary = const Color(0xFF000000); // Brand Black
-  final Color textColorSecondary = const Color(
-    0xFF7F8790,
-  ); // Base Muted Gray-Blue
-  final Color cardBackgroundColor = const Color(0xFFF8F8F8); // Base Light Gray
+  // Uber-inspired color scheme
+  final Color backgroundColor = swanWing;
+  final Color primaryColor = royalBlue;
+  final Color accentColor = quicksand;
+  final Color textColor = Colors.black87;
+  final Color secondaryTextColor = Colors.grey[800]!;
+  final Color cardColor = Colors.white;
+  bool _isHovered = false;
 
   @override
   void initState() {
     super.initState();
-    _audioPlayer = AudioPlayer();
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     )..repeat(reverse: true);
     _loadLinkedPatients();
-    _setupFirebaseMessaging();
     _watchUnresolvedAlerts();
   }
 
   @override
   void dispose() {
-    _audioPlayer.dispose();
     _animationController.dispose();
-    _unresolvedAlertSub?.cancel();
     super.dispose();
   }
 
@@ -127,63 +118,9 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
     await prefs.setString('lastSelectedPatientUid', uid);
   }
 
-  void _setupFirebaseMessaging() async {
-    try {
-      final token = await FirebaseMessaging.instance.getToken();
-      if (token != null) {
-        await FirebaseFirestore.instance
-            .collection('guardians')
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .set({'fcmToken': token}, SetOptions(merge: true));
-      }
-
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-        final data = message.data;
-        await _audioPlayer.play(AssetSource('sounds/alert_sound.wav'));
-
-        if (data.containsKey('alertId')) {
-          final alertId = data['alertId'];
-          final patientName = data['patientName'] ?? 'Unknown';
-          final lat = double.tryParse(data['lat'] ?? '');
-          final lng = double.tryParse(data['lng'] ?? '');
-          final timestamp = DateTime.tryParse(data['timestamp'] ?? '');
-
-          if (lat != null && lng != null && timestamp != null) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder:
-                    (_) => DangerZoneAlertsPage(
-                      alertId: alertId,
-                      patientName: patientName,
-                      alertLocation: LatLng(lat, lng),
-                      alertTime: timestamp,
-                    ),
-              ),
-            );
-          }
-        }
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Error setting up notifications: $e',
-            style: const TextStyle(fontSize: 16, color: Colors.white),
-          ),
-          backgroundColor: accentColor,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-    }
-  }
-
   void _watchUnresolvedAlerts() {
     final guardianUid = FirebaseAuth.instance.currentUser!.uid;
-    _unresolvedAlertSub = FirebaseFirestore.instance
+    FirebaseFirestore.instance
         .collection('alerts')
         .where('resolved', isEqualTo: false)
         .snapshots()
@@ -205,41 +142,33 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
             .toList();
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: primaryColor,
         elevation: 0,
         title: const Text(
           'Guardian Dashboard',
           style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF000000),
-            shadows: [
-              Shadow(
-                color: Colors.black26,
-                blurRadius: 5,
-                offset: Offset(0, 2),
-              ),
-            ],
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
         ),
-        flexibleSpace: Container(color: backgroundColorSolid),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: Stack(
               children: [
-                Icon(Icons.notifications, color: textColorPrimary, size: 28),
+                const Icon(Icons.notifications, color: Colors.white, size: 28),
                 if (_hasUnresolvedAlerts)
-                  FadeTransition(
-                    opacity: _animationController,
-                    child: const Positioned(
-                      right: 0,
-                      top: 0,
-                      child: Icon(
-                        Icons.brightness_1,
-                        size: 12,
-                        color: Color(0xFFFF6F61),
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
                       ),
                     ),
                   ),
@@ -253,7 +182,10 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
             },
           ),
           IconButton(
-            icon: Icon(Icons.account_circle, color: textColorPrimary, size: 28),
+            icon: const CircleAvatar(
+              backgroundColor: Colors.white24,
+              child: Icon(Icons.person, color: Colors.white),
+            ),
             onPressed: () async {
               try {
                 final uid = FirebaseAuth.instance.currentUser!.uid;
@@ -263,6 +195,7 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
                         .doc(uid)
                         .get();
                 final profileData = doc.data() ?? {};
+                if (!mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -270,16 +203,17 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
                   ),
                 );
               } catch (e) {
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
                       'Error loading profile: $e',
-                      style: const TextStyle(fontSize: 16, color: Colors.white),
+                      style: const TextStyle(fontSize: 14, color: Colors.white),
                     ),
-                    backgroundColor: accentColor,
+                    backgroundColor: Colors.red,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 );
@@ -288,257 +222,427 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
           ),
         ],
       ),
-      body: Container(
-        color: backgroundColorSolid,
-        child:
-            _isLoading
-                ? Center(
-                  child: CircularProgressIndicator(color: textColorPrimary),
-                )
-                : SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 100, 20, 30),
-                  child: Column(
-                    children: [
-                      const Text(
-                        '👩‍⚕️ Welcome, Guardian!',
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF000000),
-                          shadows: [
-                            Shadow(
-                              color: Colors.black26,
-                              blurRadius: 5,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator(color: royalBlue))
+              : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Hello Guardian!',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
-                      const SizedBox(height: 40),
-                      _buildSearchAndDropdown(filteredPatients),
-                      const SizedBox(height: 40),
-                      _buildFeatureButtons(),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Manage your patients and their care',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildSearchAndDropdown(filteredPatients),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Quick Actions',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildFeatureButtons(),
+                  ],
                 ),
+              ),
+    );
+  }
+
+  Future<void> _showAddPatientDialog() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AddPatientPage(),
       ),
     );
+
+    if (result == true && mounted) {
+      // Refresh the patient list if a patient was successfully added
+      await _loadLinkedPatients();
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Patient linked successfully!'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildSearchAndDropdown(List<Map<String, dynamic>> filteredPatients) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(25),
-        decoration: BoxDecoration(
-          color: cardBackgroundColor.withOpacity(0.9),
-          border: Border.all(
-            color: textColorSecondary.withOpacity(0.3),
-            width: 1.5,
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: textColorSecondary.withOpacity(0.1),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Select Patient',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF000000),
-                shadows: [
-                  Shadow(
-                    color: Colors.black26,
-                    blurRadius: 3,
-                    offset: Offset(0, 1),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Select Patient',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
                   ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Search patients...',
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    hintStyle: const TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (filteredPatients.isNotEmpty) ...[
+            const Divider(height: 1, thickness: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: DropdownButtonFormField<String>(
+                value: _selectedPatientUid,
+                decoration: InputDecoration(
+                  labelText: 'Choose a patient',
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                ),
+                style: const TextStyle(color: Colors.black87, fontSize: 16),
+                icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                items:
+                    _linkedPatients.map<DropdownMenuItem<String>>((patient) {
+                      return DropdownMenuItem<String>(
+                        value: patient['uid'] as String,
+                        child: Text(
+                          patient['name'] as String,
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                      );
+                    }).toList(),
+                onChanged: (value) async {
+                  setState(() {
+                    _selectedPatientUid = value;
+                  });
+                  if (value != null) {
+                    await _saveLastSelectedPatient(value);
+                  }
+                },
+                selectedItemBuilder: (BuildContext context) {
+                  return _linkedPatients.map<Widget>((patient) {
+                    return PopupMenuItem<String>(
+                      value: patient['uid'],
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              patient['name'],
+                              style: const TextStyle(fontSize: 15),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.link_off,
+                              size: 18,
+                              color: Colors.red,
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context); // Close the dropdown
+                              _unlinkPatient(
+                                patientUid: patient['uid'],
+                                patientName: patient['name'] ?? 'Patient',
+                              );
+                            },
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            tooltip: 'Unlink patient',
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList();
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+          ] else ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text(
+                  'No patients found',
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          const SizedBox(height: 16),
+          Center(
+            child: TextButton(
+              onPressed: _showAddPatientDialog,
+              style: TextButton.styleFrom(
+                foregroundColor: royalBlue,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.person_add, size: 20),
+                  SizedBox(width: 8),
+                  Text('Add Patient by UID'),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-            TextField(
-              style: const TextStyle(fontSize: 16, color: Color(0xFF000000)),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Color(0xFF7F8790).withOpacity(0.1),
-                hintText: 'Search patients...',
-                hintStyle: const TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF7F8790),
-                ),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF7F8790)),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: textColorSecondary.withOpacity(0.5),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: textColorSecondary.withOpacity(0.5),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF7F8790),
-                    width: 1.5,
-                  ),
-                ),
-              ),
-              onChanged: (val) => setState(() => _searchQuery = val),
-            ),
-            const SizedBox(height: 20),
-            _linkedPatients.isEmpty
-                ? const Text(
-                  'No patients linked yet.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF000000),
-                    fontStyle: FontStyle.italic,
-                  ),
-                )
-                : DropdownButton<String>(
-                  value: _selectedPatientUid,
-                  isExpanded: true,
-                  dropdownColor: cardBackgroundColor,
-                  icon: const Icon(
-                    Icons.arrow_drop_down,
-                    color: Color(0xFF000000),
-                    size: 28,
-                  ),
-                  underline: const SizedBox(),
-                  items:
-                      filteredPatients.map((patient) {
-                        return DropdownMenuItem<String>(
-                          value: patient['uid'],
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundImage:
-                                    patient['photoUrl'].isNotEmpty
-                                        ? NetworkImage(patient['photoUrl'])
-                                        : null,
-                                child:
-                                    patient['photoUrl'].isEmpty
-                                        ? Icon(
-                                          Icons.person,
-                                          color: textColorPrimary,
-                                          size: 20,
-                                        )
-                                        : null,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                patient['name'],
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF7F8790),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                  onChanged: (val) {
-                    setState(() => _selectedPatientUid = val);
-                    if (val != null) _saveLastSelectedPatient(val);
-                  },
-                ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
 
+  Future<void> _unlinkPatient({
+    required String patientUid,
+    required String patientName,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Unlink Patient'),
+            content: Text(
+              'Are you sure you want to unlink $patientName? This action cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('CANCEL'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('UNLINK'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final guardianUid = FirebaseAuth.instance.currentUser!.uid;
+
+      // Remove from guardian's linked patients
+      await FirebaseFirestore.instance
+          .collection('guardians')
+          .doc(guardianUid)
+          .collection('linkedPatients')
+          .doc(patientUid)
+          .delete();
+
+      // Remove guardian from patient's guardians list
+      await FirebaseFirestore.instance
+          .collection('patients')
+          .doc(patientUid)
+          .collection('guardians')
+          .doc(guardianUid)
+          .delete();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully unlinked $patientName'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+        await _loadLinkedPatients(); // Refresh the list
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to unlink patient: ${e.toString().split(']').last.trim()}',
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildFeatureButtons() {
-    final uid = _selectedPatientUid;
-    final name = _getSelectedPatientName();
+    final selectedPatient = _linkedPatients.firstWhere(
+      (p) => p['uid'] == _selectedPatientUid,
+      orElse: () => <String, dynamic>{},
+    );
+    final uid = selectedPatient['uid'] as String?;
+    final name = selectedPatient['name'] as String?;
+
+    final features = [
+      {
+        'label': 'Patient Routines',
+        'icon': Icons.schedule_rounded,
+        'color': Colors.blue[700],
+        'onTap': () {
+          if (uid == null) {
+            _showNoPatientError(context);
+            return;
+          }
+          final patient = _linkedPatients.firstWhere(
+            (p) => p['uid'] == uid,
+            orElse: () => {'name': 'Patient'},
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (_) => RoutineListPage(
+                    patientUid: uid,
+                    patientName: patient['name'] ?? 'Patient',
+                  ),
+            ),
+          );
+        },
+      },
+      {
+        'label': 'Patient Progress',
+        'icon': Icons.trending_up_rounded,
+        'color': Colors.green[700],
+        'onTap': () {
+          if (uid == null) {
+            _showNoPatientError(context);
+            return;
+          }
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (_) => GuardianPatientProgressPage(
+                    patientUid: uid,
+                    patientName: name ?? 'Patient',
+                  ),
+            ),
+          );
+        },
+      },
+      {
+        'label': 'Live Tracking & Safety Zone Setup',
+        'icon': Icons.location_on_rounded,
+        'color': Colors.red[700],
+        'onTap': () {
+          if (uid == null) {
+            _showNoPatientError(context);
+            return;
+          }
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => LivePatientTrackingPage(patientUid: uid),
+            ),
+          );
+        },
+      },
+      {
+        'label': 'Medication',
+        'icon': Icons.medication_rounded,
+        'color': Colors.orange[700],
+        'onTap': () {
+          _showNoPatientError(context);
+        },
+      },
+      {
+        'label': 'Appointments',
+        'icon': Icons.calendar_today_rounded,
+        'color': Colors.purple[700],
+        'onTap': () {
+          _showNoPatientError(context);
+        },
+      },
+    ];
 
     return GridView.count(
-      crossAxisCount: 2,
-      crossAxisSpacing: 20,
-      mainAxisSpacing: 20,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.3,
-      children: [
-        _buildButton(
-          label: 'Add Patient',
-          icon: Icons.person_add_alt,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AddPatientPage()),
-            ).then((_) => _loadLinkedPatients());
-          },
-        ),
-        _buildButton(
-          label: 'Safety Zone',
-          icon: Icons.map,
-          onTap:
-              uid == null
-                  ? () => _showNoPatientError(context)
-                  : () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (_) => PatientTrackingZonePage(
-                              patientUid: uid,
-                              patientName: name,
-                            ),
-                      ),
-                    );
-                  },
-        ),
-        _buildButton(
-          label: 'View Routines',
-          icon: Icons.list_alt,
-          onTap:
-              uid == null
-                  ? () => _showNoPatientError(context)
-                  : () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (_) => GuardianRoutineListPage(patientUid: uid),
-                      ),
-                    );
-                  },
-        ),
-        _buildButton(
-          label: 'Patient Progress',
-          icon: Icons.trending_up,
-          onTap:
-              uid == null
-                  ? () => _showNoPatientError(context)
-                  : () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (_) => GuardianPatientProgressPage(
-                              patientUid: uid,
-                              patientName: name,
-                            ),
-                      ),
-                    );
-                  },
-        ),
-      ],
+      crossAxisCount: 2,
+      childAspectRatio: 1.1,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      padding: const EdgeInsets.only(bottom: 16),
+      children:
+          features.map((feature) {
+            return _buildButton(
+              label: feature['label'] as String,
+              icon: feature['icon'] as IconData,
+              color: feature['color'] as Color?,
+              onTap: feature['onTap'] as VoidCallback,
+            );
+          }).toList(),
     );
   }
 
@@ -546,75 +650,91 @@ class _GuardianDashboardPageState extends State<GuardianDashboardPage>
     required String label,
     required IconData icon,
     required VoidCallback onTap,
+    Color? color,
   }) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: gridItemColor, // Use #000000 for border
-            width: 1,
-          ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: ElevatedButton(
-          onPressed: onTap,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: gridItemColor, // Use #000000 for background
-            foregroundColor:
-                backgroundColorSolid, // Use #F9EFE5 for text/icon contrast
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-            elevation: 5,
-            shadowColor: gridItemColor.withOpacity(
-              0.2,
-            ), // Use #000000 for shadow
-          ).copyWith(
-            overlayColor: WidgetStateProperty.all(
-              gridItemColor.withOpacity(0.2),
-            ), // Use #000000 for overlay
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 28),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
+    final buttonColor = color ?? primaryColor;
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return MouseRegion(
+          onEnter: (_) => setState(() => _isHovered = true),
+          onExit: (_) => setState(() => _isHovered = false),
+          child: GestureDetector(
+            onTap: onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(_isHovered ? 0.1 : 0.05),
+                    blurRadius: _isHovered ? 12 : 8,
+                    offset: Offset(0, _isHovered ? 4 : 2),
+                  ),
+                ],
+                border: Border.all(color: Colors.grey[200]!, width: 1),
               ),
-            ],
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: buttonColor.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(icon, size: 24, color: buttonColor),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   void _showNoPatientError(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text(
-          '❗ Please select a patient first.',
-          style: TextStyle(fontSize: 16, color: Colors.white),
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            const Text(
+              'Please select a patient first',
+              style: TextStyle(fontSize: 14, color: Colors.white),
+            ),
+          ],
         ),
-        backgroundColor: accentColor,
+        backgroundColor: Colors.red[600],
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
-  }
-
-  String _getSelectedPatientName() {
-    final match = _linkedPatients.firstWhere(
-      (p) => p['uid'] == _selectedPatientUid,
-      orElse: () => {'name': 'Unknown'},
-    );
-    return match['name'];
   }
 }

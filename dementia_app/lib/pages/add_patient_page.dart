@@ -1,7 +1,11 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+// Color palette
+const Color royalBlue = Color(0xFF1A237E);
+const Color quicksand = Color(0xFFF4A460);
+const Color swanWing = Color(0xFFF5F5F5);
 
 class AddPatientPage extends StatefulWidget {
   const AddPatientPage({super.key});
@@ -15,18 +19,8 @@ class _AddPatientPageState extends State<AddPatientPage> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Define colors from the provided palette
-  final Color backgroundColorSolid = const Color(0xFFF9EFE5); // Brand Beige
-  final Color buttonColor = const Color(0xFF000000); // Black for buttons
-  final Color accentColor = const Color(0xFFFF6F61); // Coral for alerts
-  final Color textColorPrimary = const Color(0xFF000000); // Brand Black
-  final Color textColorSecondary = const Color(
-    0xFF7F8790,
-  ); // Base Muted Gray-Blue
-  final Color cardBackgroundColor = const Color(0xFFF8F8F8); // Base Light Gray
-  final Color glassyOverlayColor = const Color(
-    0xFF000000,
-  ); // Black for glassy effect
+  // UI State
+  bool _isHovered = false;
 
   @override
   void dispose() {
@@ -38,11 +32,10 @@ class _AddPatientPageState extends State<AddPatientPage> {
     final guardianUid = FirebaseAuth.instance.currentUser!.uid;
 
     // Step 1: Validate that patient exists
-    final patientDoc =
-        await FirebaseFirestore.instance
-            .collection('patients')
-            .doc(patientUid)
-            .get();
+    final patientDoc = await FirebaseFirestore.instance
+        .collection('patients')
+        .doc(patientUid)
+        .get();
 
     if (!patientDoc.exists) {
       throw Exception('Patient with this code does not exist.');
@@ -53,21 +46,49 @@ class _AddPatientPageState extends State<AddPatientPage> {
     final patientPhotoUrl = patientData['photoUrl'] ?? '';
 
     // Step 2: Link patient under guardian/linkedPatients
-    await FirebaseFirestore.instance
+    final batch = FirebaseFirestore.instance.batch();
+    
+    // Add to guardian's linked patients
+    final guardianRef = FirebaseFirestore.instance
         .collection('guardians')
         .doc(guardianUid)
         .collection('linkedPatients')
+        .doc(patientUid);
+    
+    batch.set(guardianRef, {
+      'name': patientName,
+      'photoUrl': patientPhotoUrl,
+      'linkedAt': FieldValue.serverTimestamp(),
+    });
+    
+    // Add guardian to patient's guardians list
+    final patientRef = FirebaseFirestore.instance
+        .collection('patients')
         .doc(patientUid)
-        .set({'name': patientName, 'photoUrl': patientPhotoUrl});
+        .collection('guardians')
+        .doc(guardianUid);
+    
+    final user = FirebaseAuth.instance.currentUser!;
+    batch.set(patientRef, {
+      'name': user.displayName ?? 'Guardian',
+      'photoUrl': user.photoURL ?? '',
+      'email': user.email ?? '',
+      'linkedAt': FieldValue.serverTimestamp(),
+    });
+    
+    await batch.commit();
   }
 
   Future<void> _savePatientCode() async {
     final patientCode = _patientCodeController.text.trim();
     if (patientCode.isEmpty) {
-      setState(() => _errorMessage = "Please enter the patient's code.");
+      setState(() => _errorMessage = "Please enter the patient's UID");
       return;
     }
 
+    // Hide keyboard
+    FocusScope.of(context).unfocus();
+    
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -75,207 +96,224 @@ class _AddPatientPageState extends State<AddPatientPage> {
 
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) throw Exception("No logged-in user.");
+      if (currentUser == null) throw Exception("Please sign in to continue");
+      
+      // Check if trying to link to self
+      if (currentUser.uid == patientCode) {
+        throw Exception("You cannot link to your own account");
+      }
 
       await _linkPatientToGuardian(patientCode);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('✅ Patient linked successfully!'),
-          backgroundColor: accentColor,
-          behavior: SnackBarBehavior.floating,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
-          ),
-        ),
-      );
-      Navigator.pop(context); // Return to dashboard
+      // Return success to previous screen
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
     } catch (e) {
       setState(() {
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
       });
+      
+      // Log the error for debugging
+      debugPrint('Error linking patient: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: swanWing,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
+        centerTitle: true,
         title: const Text(
           'Add Patient',
           style: TextStyle(
-            fontSize: 24,
+            color: royalBlue,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF000000),
-            shadows: [
-              Shadow(
-                color: Colors.black26,
-                blurRadius: 5,
-                offset: Offset(0, 2),
-              ),
-            ],
           ),
         ),
-        flexibleSpace: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-            child: Container(color: glassyOverlayColor.withOpacity(0.1)),
-          ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: royalBlue),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Container(
-        color: backgroundColorSolid,
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 90),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Input field with black glassy effect
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                    child: Container(
-                      padding: const EdgeInsets.all(25),
-                      decoration: BoxDecoration(
-                        color: cardBackgroundColor.withOpacity(0.9),
-                        border: Border.all(
-                          color: glassyOverlayColor.withOpacity(0.3),
-                          width: 1.5,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header
+              const Text(
+                'Link Patient Account',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Enter the patient\'s unique ID to connect with their account',
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 32),
+              
+              // UID Input Card
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Patient UID',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
                         ),
-                        borderRadius: BorderRadius.circular(15),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Link Patient by UID',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF000000),
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black26,
-                                  blurRadius: 3,
-                                  offset: Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          TextField(
-                            controller: _patientCodeController,
-                            style: const TextStyle(
-                              color: Color(0xFF000000),
-                              fontSize: 16,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: 'Enter Patient UID',
-                              labelStyle: const TextStyle(
-                                color: Color(0xFF7F8790),
-                                fontWeight: FontWeight.w500,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.person,
-                                color: Color(0xFF7F8790),
-                              ),
-                              filled: true,
-                              fillColor: Color(0xFF7F8790).withOpacity(0.1),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: glassyOverlayColor.withOpacity(0.3),
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: glassyOverlayColor.withOpacity(0.3),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF7F8790),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 30),
-                          ClipRRect(
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _patientCodeController,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Enter patient UID',
+                          hintStyle: const TextStyle(color: Colors.black38),
+                          prefixIcon: const Icon(Icons.person_search, color: royalBlue),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                          border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: glassyOverlayColor.withOpacity(0.3),
-                                    width: 1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: ElevatedButton(
-                                  onPressed:
-                                      _isLoading ? null : _savePatientCode,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: buttonColor,
-                                    foregroundColor: backgroundColorSolid,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 40,
-                                      vertical: 15,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    elevation: 0,
-                                  ).copyWith(
-                                    overlayColor: WidgetStateProperty.all(
-                                      glassyOverlayColor.withOpacity(0.2),
-                                    ),
-                                  ),
-                                  child:
-                                      _isLoading
-                                          ? const SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: CircularProgressIndicator(
-                                              color: Color(0xFFF9EFE5),
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                          : const Text(
-                                            'Link Patient',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                        ),
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red[50],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  style: const TextStyle(color: Colors.red, fontSize: 14),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: 20),
-                  Text(
-                    _errorMessage!,
-                    style: TextStyle(color: accentColor, fontSize: 16),
-                    textAlign: TextAlign.center,
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // Link Button
+              MouseRegion(
+                onEnter: (_) => setState(() => _isHovered = true),
+                onExit: (_) => setState(() => _isHovered = false),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: _isHovered
+                          ? [royalBlue.withOpacity(0.9), royalBlue.withOpacity(0.8)]
+                          : [royalBlue, royalBlue.withOpacity(0.9)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: royalBlue.withOpacity(0.3),
+                        blurRadius: _isHovered ? 12 : 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
-              ],
-            ),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _savePatientCode,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.link, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'Link Patient Account',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Help Text
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.0),
+                child: Text(
+                  'You can find the patient\'s UID in their profile settings or by asking them to share it with you.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.black45,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

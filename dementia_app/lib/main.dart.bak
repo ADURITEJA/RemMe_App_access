@@ -1,0 +1,409 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dementia_app/pages/add_patient_page.dart';
+import 'package:dementia_app/pages/alerts_log_page.dart';
+import 'package:dementia_app/pages/danger_zone_alerts_page.dart';
+import 'package:dementia_app/pages/guardian_dashboard_page.dart';
+import 'package:dementia_app/pages/patient_tracking_zone_page.dart';
+import 'package:dementia_app/pages/profile_page.dart';
+import 'package:dementia_app/profile_setup/profile_question_age.dart';
+import 'package:dementia_app/profile_setup/profile_question_gender.dart';
+import 'package:dementia_app/profile_setup/profile_question_name.dart';
+import 'package:dementia_app/profile_setup/profile_question_phone.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'RemMe',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(),
+      home: const LoginScreen(isPatient: true), // Default to patient login
+    );
+  }
+}
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+    );
+    if (date == null) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_selectedDateTime ?? DateTime.now()),
+    );
+    if (time == null) return;
+    setState(() {
+      _selectedDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate() || _selectedDateTime == null) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      await FirebaseFirestore.instance
+          .collection('patients')
+          .doc(widget.patientUid)
+          .collection('routines')
+          .doc(widget.routine.id)
+          .update({
+            'title': _titleController.text,
+            'dateTime': _selectedDateTime,
+          });
+      Navigator.pop(context, true);
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to update routine.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Edit Routine')),
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Routine Title',
+                        ),
+                        validator:
+                            (v) =>
+                                v == null || v.isEmpty ? 'Enter a title' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Text(
+                            _selectedDateTime == null
+                                ? 'No date/time chosen'
+                                : _selectedDateTime.toString(),
+                          ),
+                          const SizedBox(width: 10),
+                          ElevatedButton(
+                            onPressed: _pickDateTime,
+                            child: const Text('Pick Date & Time'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _submit,
+                        child: const Text('Update Routine'),
+                      ),
+                      if (_errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+    );
+  }
+}
+
+final defaultGeminiApiKey = 'AIzaSyD2jKT9WzrhlJ6UsfuzByaQMbO2XKIPFys';
+final defaultGeminiModel = 'gemini-2.5-pro-exp-03-25';
+final groqApiKey = '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';
+final groqModel = 'llama-3.3-70b-versatile';
+
+class MedicalAIChatBotPage extends StatefulWidget {
+  const MedicalAIChatBotPage({super.key});
+
+  @override
+  State<MedicalAIChatBotPage> createState() => _MedicalAIChatBotPageState();
+}
+
+class _MedicalAIChatBotPageState extends State<MedicalAIChatBotPage>
+    with SingleTickerProviderStateMixin {
+  final TextEditingController _controller = TextEditingController();
+  final List<Map<String, String>> _messages = [];
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  final String _flaskApiUrl =
+      'http://192.168.1.6:5001/chat'; // Adjust for your environment
+  late AnimationController _animationController;
+  late Animation<double> _jumpAnimation1;
+  late Animation<double> _jumpAnimation2;
+  late Animation<double> _jumpAnimation3;
+  late Animation<double> _morphAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(
+        milliseconds: 1750,
+      ), // Matches --uib-speed: 1.75s
+    )..repeat();
+
+    _jumpAnimation1 = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.0, 1.0, curve: Curves.easeInOut),
+      ),
+    );
+
+    _jumpAnimation2 = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.36, 1.0, curve: Curves.easeInOut),
+      ),
+    );
+
+    _jumpAnimation3 = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.2, 1.0, curve: Curves.easeInOut),
+      ),
+    );
+
+    _morphAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.0, 1.0, curve: Curves.easeInOut),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendMessage() async {
+    final input = _controller.text.trim();
+    if (input.isEmpty) return;
+    setState(() {
+      _messages.add({'role': 'user', 'content': input});
+      _isLoading = true;
+      _errorMessage = null;
+      _controller.clear();
+    });
+    try {
+      final response = await http
+          .post(
+            Uri.parse(_flaskApiUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'message': input}),
+          )
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        final answer = jsonResponse['reply'] ?? 'No response.';
+        setState(() {
+          _messages.add({'role': 'ai', 'content': answer});
+          _isLoading = false;
+        });
+      } else {
+        final jsonResponse = jsonDecode(response.body);
+        setState(() {
+          _errorMessage =
+              jsonResponse['error'] ?? 'API Error: ${response.statusCode}';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to get response: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Medical AI Chatbot')),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: _messages.length,
+              itemBuilder: (context, i) {
+                final m = _messages[i];
+                final isUser = m['role'] == 'user';
+                return Align(
+                  alignment:
+                      isUser ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(
+                      vertical: 4,
+                      horizontal: 8,
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isUser ? Colors.blue[100] : Colors.green[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      m['content'] ?? '',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          if (_isLoading)
+            Container(
+              height: 45, // Matches --uib-size: 45px
+              width: 45, // Matches --uib-size: 45px
+              padding: const EdgeInsets.only(
+                bottom: 20,
+              ), // Matches padding-bottom: 20%
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildCube(_jumpAnimation1, _morphAnimation),
+                  _buildCube(_jumpAnimation2, _morphAnimation),
+                  _buildCube(_jumpAnimation3, _morphAnimation),
+                ],
+              ),
+            ),
+          if (_isLoading)
+            const LinearProgressIndicator(), // Keep existing indicator as fallback
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    decoration: const InputDecoration(
+                      hintText: 'Ask a medical question...',
+                    ),
+                    onSubmitted: (_) => _sendMessage(),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: _isLoading ? null : _sendMessage,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCube(
+    Animation<double> jumpAnimation,
+    Animation<double> morphAnimation,
+  ) {
+    return AnimatedBuilder(
+      animation: _animationController,
+      builder: (context, child) {
+        final jumpValue = jumpAnimation.value;
+        final morphValue = morphAnimation.value;
+        double jumpOffset = 0;
+        double scaleY = 1.0;
+        double scaleX = 1.0;
+
+        // Jump animation logic
+        if (jumpValue <= 0.3) {
+          jumpOffset = 0;
+        } else if (jumpValue <= 0.5) {
+          jumpOffset = -200 * (jumpValue - 0.3) / 0.2;
+        } else if (jumpValue <= 0.75) {
+          jumpOffset = -200 + 200 * (jumpValue - 0.5) / 0.25;
+        } else {
+          jumpOffset = 0;
+        }
+
+        // Morph animation logic
+        if (morphValue <= 0.1) {
+          scaleY = 1;
+        } else if (morphValue <= 0.25) {
+          scaleY = 0.6 + (1 - 0.6) * (morphValue - 0.2) / 0.05;
+          scaleX = 1.3 - (1.3 - 1) * (morphValue - 0.2) / 0.05;
+        } else if (morphValue <= 0.3) {
+          scaleY = 1.15 - (1.15 - 1) * (morphValue - 0.25) / 0.05;
+          scaleX = 0.9 + (1 - 0.9) * (morphValue - 0.25) / 0.05;
+        } else if (morphValue <= 0.4) {
+          scaleY = 1;
+        } else if (morphValue <= 0.75) {
+          scaleY = 0.8 + (1 - 0.8) * (morphValue - 0.7) / 0.05;
+          scaleX = 1.2 - (1.2 - 1) * (morphValue - 0.7) / 0.05;
+        } else {
+          scaleY = 1;
+          scaleX = 1;
+        }
+
+        return Container(
+          width: 9, // calc(45px * 0.2)
+          height: 9, // calc(45px * 0.2)
+          margin: const EdgeInsets.only(bottom: 5), // Align to bottom
+          child: Transform(
+            transform:
+                Matrix4.identity()
+                  ..translate(0.0, jumpOffset)
+                  ..scale(scaleX, scaleY),
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(25),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
