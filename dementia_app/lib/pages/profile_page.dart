@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -19,24 +20,19 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController _phoneController;
   late TextEditingController _ageController;
   String gender = 'Not specified';
-  String? photoUrl;
+  String photoUrl = '';
   File? _newImage;
   bool _isSaving = false;
 
-  final List<String> _genderOptions = [
-    'Male',
-    'Female',
-    'Other',
-    'Not specified',
-  ];
+  final List<String> _genderOptions = ['Male', 'Female', 'Other'];
 
   // Uber-like color scheme
   static const Color royalBlue = Color(0xFF1A237E);
   static const Color quicksand = Color(0xFFF4A460);
   static const Color swanWing = Color(0xFFF5F5F5);
-
+  
   // Derived colors
-  final Color backgroundColor = swanWing;
+  final Color backgroundColor = const Color(0xFFF5F5F5);
   final Color cardColor = Colors.white;
   final Color primaryText = const Color(0xFF1A1A1A);
   final Color secondaryText = const Color(0xFF666666);
@@ -52,10 +48,7 @@ class _ProfilePageState extends State<ProfilePage> {
       text: widget.profileData['phone'] ?? '',
     );
     _ageController = TextEditingController(
-      text:
-          widget.profileData['age'] != null
-              ? widget.profileData['age'].toString()
-              : '',
+      text: widget.profileData['age'] != null ? widget.profileData['age'].toString() : '',
     );
     gender = widget.profileData['gender'] ?? 'Not specified';
     photoUrl = widget.profileData['photoUrl'] ?? '';
@@ -74,9 +67,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<String?> _uploadPhoto(File imageFile) async {
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      final ref = FirebaseStorage.instance.ref().child(
-        'profile_photos/$uid.jpg',
-      );
+      final ref = FirebaseStorage.instance.ref().child('profile_photos/$uid.jpg');
       await ref.putFile(imageFile);
       return await ref.getDownloadURL();
     } catch (e) {
@@ -100,17 +91,12 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    String? newPhotoUrl = photoUrl;
 
+    String? newPhotoUrl = photoUrl;
     if (_newImage != null) {
       final uploadedUrl = await _uploadPhoto(_newImage!);
       if (uploadedUrl != null) {
         newPhotoUrl = uploadedUrl;
-      } else {
-        setState(() {
-          _isSaving = false;
-        });
-        return; // Exit early if photo upload fails
       }
     }
 
@@ -124,48 +110,53 @@ class _ProfilePageState extends State<ProfilePage> {
       });
 
       setState(() {
-        photoUrl = newPhotoUrl;
+        photoUrl = newPhotoUrl!;
         _isSaving = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Profile updated'),
-          backgroundColor: quicksand,
-          behavior: SnackBarBehavior.floating,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Profile updated'),
+            backgroundColor: quicksand,
+            behavior: SnackBarBehavior.floating,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(10)),
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (e) {
       setState(() {
         _isSaving = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating profile: $e'),
-          backgroundColor: quicksand,
-          behavior: SnackBarBehavior.floating,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating profile: $e'),
+            backgroundColor: quicksand,
+            behavior: SnackBarBehavior.floating,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(10)),
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
   }
 
   Future<void> _logout() async {
     await FirebaseAuth.instance.signOut();
-    Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final ImageProvider<Object>? displayedImage =
-        _newImage != null
-            ? FileImage(_newImage!)
-            : (photoUrl != null && photoUrl!.isNotEmpty ? NetworkImage(photoUrl!) : null);
+    final displayedImage = _newImage != null
+        ? FileImage(_newImage!)
+        : (photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -194,9 +185,8 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 children: [
                   // Profile photo
-                  InkWell(
+                  GestureDetector(
                     onTap: _pickImage,
-                    borderRadius: BorderRadius.circular(50),
                     child: Stack(
                       children: [
                         Container(
@@ -204,30 +194,34 @@ class _ProfilePageState extends State<ProfilePage> {
                           height: 100,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
-                            boxShadow: const [
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 3,
+                            ),
+                            boxShadow: [
                               BoxShadow(
                                 color: Colors.black26,
                                 blurRadius: 10,
-                                offset: Offset(0, 4),
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
                           child: ClipOval(
-                            child:
-                                displayedImage != null
-                                    ? Image(
-                                      image: displayedImage,
-                                      fit: BoxFit.cover,
-                                    )
-                                    : Container(
-                                      color: Colors.grey[200],
-                                      child: Icon(
-                                        Icons.person,
-                                        size: 50,
-                                        color: Colors.grey[400],
-                                      ),
+                            child: displayedImage != null
+                                ? Image(
+                                    image: displayedImage as ImageProvider,
+                                    fit: BoxFit.cover,
+                                    width: 100,
+                                    height: 100,
+                                  )
+                                : Container(
+                                    color: Colors.grey[200],
+                                    child: Icon(
+                                      Icons.person,
+                                      size: 50,
+                                      color: Colors.grey[400],
                                     ),
+                                  ),
                           ),
                         ),
                         Positioned(
@@ -235,18 +229,18 @@ class _ProfilePageState extends State<ProfilePage> {
                           bottom: 0,
                           child: Container(
                             padding: const EdgeInsets.all(6),
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: Colors.white,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black26,
                                   blurRadius: 4,
-                                  offset: Offset(0, 2),
+                                  offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.camera_alt,
                               color: royalBlue,
                               size: 20,
@@ -258,9 +252,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 15),
                   Text(
-                    _nameController.text.isNotEmpty
-                        ? _nameController.text
-                        : 'No Name',
+                    _nameController.text.isNotEmpty ? _nameController.text : 'No Name',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -291,16 +283,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 _buildListTile(
                   icon: Icons.person_outline,
                   title: 'Role',
-                  subtitle:
-                      (widget.profileData['role'] ?? 'N/A')
-                          .toString()
-                          .toUpperCase(),
+                  subtitle: (widget.profileData['role'] ?? 'N/A').toString().toUpperCase(),
                   showDivider: true,
                 ),
                 _buildListTile(
                   icon: Icons.calendar_today,
                   title: 'Member Since',
-                  subtitle: _formatMemberSince(),
+                  subtitle: 'May 2023',
                 ),
               ],
             ),
@@ -329,10 +318,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   showDivider: true,
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 16,
-                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -346,30 +332,23 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value:
-                            _genderOptions.contains(gender)
-                                ? gender
-                                : 'Not specified',
-                        items:
-                            _genderOptions
-                                .map(
-                                  (g) => DropdownMenuItem(
-                                    value: g,
-                                    child: Text(
-                                      g,
-                                      style: TextStyle(
-                                        color: primaryText,
-                                        fontSize: 16,
-                                      ),
-                                    ),
+                        value: _genderOptions.contains(gender) ? gender : null,
+                        items: _genderOptions
+                            .map(
+                              (g) => DropdownMenuItem(
+                                value: g,
+                                child: Text(
+                                  g,
+                                  style: TextStyle(
+                                    color: primaryText,
+                                    fontSize: 16,
                                   ),
-                                )
-                                .toList(),
+                                ),
+                              ),
+                            )
+                            .toList(),
                         decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           filled: true,
                           fillColor: Colors.grey[100],
                           border: OutlineInputBorder(
@@ -382,20 +361,19 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: royalBlue,
-                              width: 1.5,
-                            ),
+                            borderSide: BorderSide(color: royalBlue, width: 1.5),
                           ),
-                          prefixIcon: const Icon(
-                            Icons.transgender,
-                            color: royalBlue,
-                          ),
+                          prefixIcon: Icon(Icons.transgender, color: royalBlue),
                         ),
                         dropdownColor: Colors.white,
-                        style: TextStyle(color: primaryText, fontSize: 16),
+                        style: TextStyle(
+                          color: primaryText,
+                          fontSize: 16,
+                        ),
                         onChanged: (val) {
-                          if (val != null) setState(() => gender = val);
+                          if (val != null) {
+                            setState(() => gender = val);
+                          }
                         },
                       ),
                     ],
@@ -424,30 +402,31 @@ class _ProfilePageState extends State<ProfilePage> {
                         shadowColor: royalBlue.withOpacity(0.3),
                       ).copyWith(
                         overlayColor: WidgetStateProperty.resolveWith<Color>(
-                          (states) =>
-                              states.contains(WidgetState.hovered)
-                                  ? royalBlue.withOpacity(0.9)
-                                  : royalBlue,
+                          (Set<WidgetState> states) {
+                            if (states.contains(WidgetState.hovered)) {
+                              return royalBlue.withOpacity(0.9);
+                            }
+                            return royalBlue;
+                          },
                         ),
                       ),
-                      child:
-                          _isSaving
-                              ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.5,
-                                ),
-                              )
-                              : const Text(
-                                'SAVE CHANGES',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.5,
-                                ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
                               ),
+                            )
+                          : const Text(
+                              'SAVE CHANGES',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -459,20 +438,19 @@ class _ProfilePageState extends State<ProfilePage> {
                       style: OutlinedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         foregroundColor: Colors.red,
-                        side: BorderSide(
-                          color: Colors.red.shade300,
-                          width: 1.5,
-                        ),
+                        side: BorderSide(color: Colors.red.shade300, width: 1.5),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ).copyWith(
                         overlayColor: WidgetStateProperty.resolveWith<Color>(
-                          (states) =>
-                              states.contains(WidgetState.hovered)
-                                  ? Colors.red.withOpacity(0.05)
-                                  : Colors.transparent,
+                          (Set<WidgetState> states) {
+                            if (states.contains(WidgetState.hovered)) {
+                              return Colors.red.withOpacity(0.05);
+                            }
+                            return Colors.transparent;
+                          },
                         ),
                       ),
                       child: Row(
@@ -502,33 +480,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  String _formatMemberSince() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user?.metadata.creationTime != null) {
-      final creationDate = user!.metadata.creationTime!;
-      return '${_getMonthName(creationDate.month)} ${creationDate.year}';
-    }
-    return 'N/A';
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return months[month - 1];
-  }
-
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
@@ -555,7 +506,9 @@ class _ProfilePageState extends State<ProfilePage> {
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: Colors.grey.shade200, width: 1),
       ),
-      child: Column(children: children),
+      child: Column(
+        children: children,
+      ),
     );
   }
 
@@ -568,18 +521,10 @@ class _ProfilePageState extends State<ProfilePage> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           child: Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: royalBlue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: royalBlue, size: 20),
-              ),
+              Icon(icon, color: royalBlue, size: 22),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -593,7 +538,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: TextStyle(
@@ -609,7 +554,10 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         if (showDivider)
-          Divider(height: 1, color: dividerColor, indent: 16, endIndent: 16),
+          Padding(
+            padding: const EdgeInsets.only(left: 54, right: 16),
+            child: Divider(height: 1, color: dividerColor),
+          ),
       ],
     );
   }
@@ -625,33 +573,48 @@ class _ProfilePageState extends State<ProfilePage> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          child: TextFormField(
-            controller: controller,
-            keyboardType: keyboardType,
-            style: TextStyle(
-              color: primaryText,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-            decoration: InputDecoration(
-              labelText: label,
-              labelStyle: TextStyle(
-                color: secondaryText,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+          child: Row(
+            children: [
+              Icon(icon, color: royalBlue, size: 22),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: secondaryText,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: controller,
+                      style: TextStyle(
+                        color: primaryText,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        border: InputBorder.none,
+                      ),
+                      keyboardType: keyboardType,
+                    ),
+                  ],
+                ),
               ),
-              prefixIcon: Icon(icon, color: royalBlue),
-              contentPadding: const EdgeInsets.symmetric(vertical: 8),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              floatingLabelBehavior: FloatingLabelBehavior.auto,
-              isDense: true,
-            ),
+            ],
           ),
         ),
         if (showDivider)
-          Divider(height: 1, color: dividerColor, indent: 16, endIndent: 16),
+          Padding(
+            padding: const EdgeInsets.only(left: 54, right: 16),
+            child: Divider(height: 1, color: dividerColor),
+          ),
       ],
     );
   }

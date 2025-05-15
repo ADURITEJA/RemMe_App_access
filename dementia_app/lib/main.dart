@@ -36,7 +36,6 @@ import 'package:dementia_app/profile_setup/profile_summary_screen.dart';
 import 'package:dementia_app/pages/profile_page.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -267,6 +266,7 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
+
 class RoleSelectionPage extends StatefulWidget {
   const RoleSelectionPage({super.key});
 
@@ -274,8 +274,7 @@ class RoleSelectionPage extends StatefulWidget {
   State<RoleSelectionPage> createState() => _RoleSelectionPageState();
 }
 
-class _RoleSelectionPageState extends State<RoleSelectionPage>
-    with SingleTickerProviderStateMixin {
+class _RoleSelectionPageState extends State<RoleSelectionPage> with SingleTickerProviderStateMixin {
   bool _isHoveringGuardian = false;
   bool _isHoveringPatient = false;
   late final AnimationController _animationController;
@@ -289,7 +288,10 @@ class _RoleSelectionPageState extends State<RoleSelectionPage>
       duration: const Duration(milliseconds: 300),
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
     );
     _animationController.forward();
   }
@@ -303,7 +305,7 @@ class _RoleSelectionPageState extends State<RoleSelectionPage>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-
+    
     return Scaffold(
       backgroundColor: swanWing,
       body: Stack(
@@ -324,7 +326,7 @@ class _RoleSelectionPageState extends State<RoleSelectionPage>
               ),
             ),
           ),
-
+          
           // Main content
           SafeArea(
             child: SingleChildScrollView(
@@ -333,10 +335,7 @@ class _RoleSelectionPageState extends State<RoleSelectionPage>
                 children: [
                   // Header
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24.0,
-                      vertical: 16.0,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -380,7 +379,7 @@ class _RoleSelectionPageState extends State<RoleSelectionPage>
                       ],
                     ),
                   ),
-
+                  
                   // Role selection cards
                   Padding(
                     padding: const EdgeInsets.all(24.0),
@@ -389,18 +388,14 @@ class _RoleSelectionPageState extends State<RoleSelectionPage>
                         const SizedBox(height: 40),
                         // Guardian Card
                         MouseRegion(
-                          onEnter:
-                              (_) => setState(() => _isHoveringGuardian = true),
-                          onExit:
-                              (_) =>
-                                  setState(() => _isHoveringGuardian = false),
+                          onEnter: (_) => setState(() => _isHoveringGuardian = true),
+                          onExit: (_) => setState(() => _isHoveringGuardian = false),
                           child: GestureDetector(
                             onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (context) => const GuardianLoginPage(),
+                                  builder: (context) => const GuardianLoginPage(),
                                 ),
                               );
                             },
@@ -413,21 +408,13 @@ class _RoleSelectionPageState extends State<RoleSelectionPage>
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(
-                                      _isHoveringGuardian ? 0.15 : 0.1,
-                                    ),
+                                    color: Colors.black.withOpacity(_isHoveringGuardian ? 0.15 : 0.1),
                                     blurRadius: _isHoveringGuardian ? 20 : 10,
-                                    offset: Offset(
-                                      0,
-                                      _isHoveringGuardian ? 8 : 4,
-                                    ),
+                                    offset: Offset(0, _isHoveringGuardian ? 8 : 4),
                                   ),
                                 ],
                                 border: Border.all(
-                                  color:
-                                      _isHoveringGuardian
-                                          ? quicksand
-                                          : Colors.transparent,
+                                  color: _isHoveringGuardian ? quicksand : Colors.transparent,
                                   width: 2,
                                 ),
                               ),
@@ -448,8 +435,7 @@ class _RoleSelectionPageState extends State<RoleSelectionPage>
                                   const SizedBox(width: 20),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Guardian',
@@ -473,30 +459,24 @@ class _RoleSelectionPageState extends State<RoleSelectionPage>
                                   Icon(
                                     Icons.arrow_forward_ios_rounded,
                                     size: 16,
-                                    color:
-                                        _isHoveringGuardian
-                                            ? quicksand
-                                            : Colors.grey[400],
+                                    color: _isHoveringGuardian ? quicksand : Colors.grey[400],
                                   ),
                                 ],
                               ),
                             ),
                           ),
                         ),
-
+                        
                         // Patient Card
                         MouseRegion(
-                          onEnter:
-                              (_) => setState(() => _isHoveringPatient = true),
-                          onExit:
-                              (_) => setState(() => _isHoveringPatient = false),
+                          onEnter: (_) => setState(() => _isHoveringPatient = true),
+                          onExit: (_) => setState(() => _isHoveringPatient = false),
                           child: GestureDetector(
                             onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (context) => const PatientLoginPage(),
+                                  builder: (context) => const PatientLoginPage(),
                                 ),
                               );
                             },
@@ -508,21 +488,13 @@ class _RoleSelectionPageState extends State<RoleSelectionPage>
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(
-                                      _isHoveringPatient ? 0.15 : 0.1,
-                                    ),
+                                    color: Colors.black.withOpacity(_isHoveringPatient ? 0.15 : 0.1),
                                     blurRadius: _isHoveringPatient ? 20 : 10,
-                                    offset: Offset(
-                                      0,
-                                      _isHoveringPatient ? 8 : 4,
-                                    ),
+                                    offset: Offset(0, _isHoveringPatient ? 8 : 4),
                                   ),
                                 ],
                                 border: Border.all(
-                                  color:
-                                      _isHoveringPatient
-                                          ? quicksand
-                                          : Colors.transparent,
+                                  color: _isHoveringPatient ? quicksand : Colors.transparent,
                                   width: 2,
                                 ),
                               ),
@@ -543,8 +515,7 @@ class _RoleSelectionPageState extends State<RoleSelectionPage>
                                   const SizedBox(width: 20),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Patient',
@@ -568,10 +539,7 @@ class _RoleSelectionPageState extends State<RoleSelectionPage>
                                   Icon(
                                     Icons.arrow_forward_ios_rounded,
                                     size: 16,
-                                    color:
-                                        _isHoveringPatient
-                                            ? quicksand
-                                            : Colors.grey[400],
+                                    color: _isHoveringPatient ? quicksand : Colors.grey[400],
                                   ),
                                 ],
                               ),
@@ -581,7 +549,7 @@ class _RoleSelectionPageState extends State<RoleSelectionPage>
                       ],
                     ),
                   ),
-
+                  
                   // Bottom wave decoration
                   Align(
                     alignment: Alignment.bottomCenter,
@@ -613,28 +581,15 @@ class WaveClipper extends CustomClipper<Path> {
   Path getClip(Size size) {
     var path = Path();
     path.lineTo(0, size.height);
-
+    
     var firstStart = Offset(size.width / 5, size.height);
     var firstEnd = Offset(size.width / 2.5, size.height - 30.0);
-    path.quadraticBezierTo(
-      firstStart.dx,
-      firstStart.dy,
-      firstEnd.dx,
-      firstEnd.dy,
-    );
-
-    var secondStart = Offset(
-      size.width - (size.width / 3.24),
-      size.height - 65,
-    );
+    path.quadraticBezierTo(firstStart.dx, firstStart.dy, firstEnd.dx, firstEnd.dy);
+    
+    var secondStart = Offset(size.width - (size.width / 3.24), size.height - 65);
     var secondEnd = Offset(size.width, size.height - 30);
-    path.quadraticBezierTo(
-      secondStart.dx,
-      secondStart.dy,
-      secondEnd.dx,
-      secondEnd.dy,
-    );
-
+    path.quadraticBezierTo(secondStart.dx, secondStart.dy, secondEnd.dx, secondEnd.dy);
+    
     path.lineTo(size.width, 0);
     path.close();
     return path;
@@ -699,8 +654,7 @@ class GuardianLoginPage extends StatefulWidget {
   State<GuardianLoginPage> createState() => _GuardianLoginPageState();
 }
 
-class _GuardianLoginPageState extends State<GuardianLoginPage>
-    with SingleTickerProviderStateMixin {
+class _GuardianLoginPageState extends State<GuardianLoginPage> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -708,7 +662,7 @@ class _GuardianLoginPageState extends State<GuardianLoginPage>
   bool _isHovering = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-
+  
   // Color scheme
   final Color royalBlue = const Color(0xFF1A237E);
   final Color quickSand = const Color(0xFFF4A460);
@@ -721,9 +675,12 @@ class _GuardianLoginPageState extends State<GuardianLoginPage>
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     )..repeat(reverse: true);
-
+    
     _fadeAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
     );
   }
 
@@ -738,7 +695,7 @@ class _GuardianLoginPageState extends State<GuardianLoginPage>
   Future<void> _loginGuardian() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoginPressed = true);
-
+      
       try {
         final userCredential = await FirebaseAuth.instance
             .signInWithEmailAndPassword(
@@ -788,7 +745,7 @@ class _GuardianLoginPageState extends State<GuardianLoginPage>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -836,13 +793,16 @@ class _GuardianLoginPageState extends State<GuardianLoginPage>
                         const SizedBox(height: 8),
                         const Text(
                           'Sign in to continue',
-                          style: TextStyle(fontSize: 16, color: Colors.white70),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white70,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
-
+                
                 // Login Form
                 Positioned(
                   top: size.height * 0.25,
@@ -868,11 +828,10 @@ class _GuardianLoginPageState extends State<GuardianLoginPage>
                                 controller: _emailController,
                                 obscureText: false,
                                 icon: Icons.email_outlined,
-                                validator:
-                                    (value) =>
-                                        value == null || value.isEmpty
-                                            ? 'Please enter your email'
-                                            : null,
+                                validator: (value) =>
+                                    value == null || value.isEmpty
+                                        ? 'Please enter your email'
+                                        : null,
                               ),
                               const SizedBox(height: 20),
                               _buildInputField(
@@ -880,11 +839,10 @@ class _GuardianLoginPageState extends State<GuardianLoginPage>
                                 controller: _passwordController,
                                 obscureText: true,
                                 icon: Icons.lock_outline,
-                                validator:
-                                    (value) =>
-                                        value == null || value.isEmpty
-                                            ? 'Please enter your password'
-                                            : null,
+                                validator: (value) =>
+                                    value == null || value.isEmpty
+                                        ? 'Please enter your password'
+                                        : null,
                               ),
                               const SizedBox(height: 8),
                               Align(
@@ -910,23 +868,19 @@ class _GuardianLoginPageState extends State<GuardianLoginPage>
                                 children: [
                                   Text(
                                     'Don\'t have an account? ',
-                                    style: TextStyle(color: Colors.grey[600]),
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                    ),
                                   ),
                                   MouseRegion(
-                                    onEnter:
-                                        (_) =>
-                                            setState(() => _isHovering = true),
-                                    onExit:
-                                        (_) =>
-                                            setState(() => _isHovering = false),
+                                    onEnter: (_) => setState(() => _isHovering = true),
+                                    onExit: (_) => setState(() => _isHovering = false),
                                     child: InkWell(
                                       onTap: () {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder:
-                                                (context) =>
-                                                    const GuardianRegisterPage(),
+                                            builder: (context) => const GuardianRegisterPage(),
                                           ),
                                         );
                                       },
@@ -935,10 +889,7 @@ class _GuardianLoginPageState extends State<GuardianLoginPage>
                                         style: TextStyle(
                                           color: royalBlue,
                                           fontWeight: FontWeight.bold,
-                                          decoration:
-                                              _isHovering
-                                                  ? TextDecoration.underline
-                                                  : TextDecoration.none,
+                                          decoration: _isHovering ? TextDecoration.underline : TextDecoration.none,
                                         ),
                                       ),
                                     ),
@@ -989,10 +940,7 @@ class _GuardianLoginPageState extends State<GuardianLoginPage>
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: royalBlue, width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16,
-          horizontal: 16,
-        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       ),
       validator: validator,
     );
@@ -1006,10 +954,9 @@ class _GuardianLoginPageState extends State<GuardianLoginPage>
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors:
-                _isHovering
-                    ? [royalBlue.withOpacity(0.9), royalBlue.withOpacity(0.7)]
-                    : [royalBlue, royalBlue.withOpacity(0.9)],
+            colors: _isHovering 
+                ? [royalBlue.withOpacity(0.9), royalBlue.withOpacity(0.7)]
+                : [royalBlue, royalBlue.withOpacity(0.9)],
           ),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
@@ -1030,24 +977,23 @@ class _GuardianLoginPageState extends State<GuardianLoginPage>
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child:
-              _isLoginPressed
-                  ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                  : const Text(
-                    'LOG IN',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
+          child: _isLoginPressed
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
                   ),
+                )
+              : const Text(
+                  'LOG IN',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
         ),
       ),
     );
@@ -1061,8 +1007,7 @@ class PatientLoginPage extends StatefulWidget {
   State<PatientLoginPage> createState() => _PatientLoginPageState();
 }
 
-class _PatientLoginPageState extends State<PatientLoginPage>
-    with SingleTickerProviderStateMixin {
+class _PatientLoginPageState extends State<PatientLoginPage> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -1080,7 +1025,10 @@ class _PatientLoginPageState extends State<PatientLoginPage>
       duration: const Duration(milliseconds: 300),
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
     );
     _animationController.forward();
   }
@@ -1116,14 +1064,14 @@ class _PatientLoginPageState extends State<PatientLoginPage>
         }
 
         if (!mounted) return;
-
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Signed in successfully!'),
             backgroundColor: Colors.green,
           ),
         );
-
+        
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const PatientDashboardPage()),
@@ -1134,9 +1082,12 @@ class _PatientLoginPageState extends State<PatientLoginPage>
           message = 'Invalid email or password';
         }
         if (!mounted) return;
-
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+          ),
         );
       } catch (e) {
         if (!mounted) return;
@@ -1159,7 +1110,7 @@ class _PatientLoginPageState extends State<PatientLoginPage>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-
+    
     return Scaffold(
       backgroundColor: swanWing,
       resizeToAvoidBottomInset: true,
@@ -1167,9 +1118,7 @@ class _PatientLoginPageState extends State<PatientLoginPage>
         child: SingleChildScrollView(
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minHeight:
-                  MediaQuery.of(context).size.height -
-                  MediaQuery.of(context).padding.vertical,
+              minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.vertical,
             ),
             child: IntrinsicHeight(
               child: Stack(
@@ -1193,18 +1142,12 @@ class _PatientLoginPageState extends State<PatientLoginPage>
                         ),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24.0,
-                          vertical: 16.0,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             IconButton(
-                              icon: const Icon(
-                                Icons.arrow_back_ios,
-                                color: Colors.white,
-                              ),
+                              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
                               onPressed: () => Navigator.pop(context),
                             ),
                             const SizedBox(height: 20),
@@ -1237,7 +1180,7 @@ class _PatientLoginPageState extends State<PatientLoginPage>
                       ),
                     ),
                   ),
-
+                  
                   // Login Form
                   Positioned.fill(
                     top: size.height * 0.25,
@@ -1264,13 +1207,10 @@ class _PatientLoginPageState extends State<PatientLoginPage>
                                     label: 'Email',
                                     controller: _emailController,
                                     obscureText: false,
-                                    validator:
-                                        (value) =>
-                                            value == null ||
-                                                    value.isEmpty ||
-                                                    !value.contains('@')
-                                                ? 'Please enter a valid email'
-                                                : null,
+                                    validator: (value) =>
+                                        value == null || value.isEmpty || !value.contains('@')
+                                            ? 'Please enter a valid email'
+                                            : null,
                                     icon: Icons.email_outlined,
                                   ),
                                   const SizedBox(height: 20),
@@ -1278,31 +1218,24 @@ class _PatientLoginPageState extends State<PatientLoginPage>
                                     label: 'Password',
                                     controller: _passwordController,
                                     obscureText: true,
-                                    validator:
-                                        (value) =>
-                                            value == null || value.isEmpty
-                                                ? 'Please enter your password'
-                                                : null,
+                                    validator: (value) =>
+                                        value == null || value.isEmpty
+                                            ? 'Please enter your password'
+                                            : null,
                                     icon: Icons.lock_outline,
                                   ),
                                   const SizedBox(height: 24),
                                   _buildLoginButton(),
                                   const SizedBox(height: 20),
-
+                                  
                                   // Divider with "or" text
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16.0,
-                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 16.0),
                                     child: Row(
                                       children: [
-                                        const Expanded(
-                                          child: Divider(thickness: 1),
-                                        ),
+                                        const Expanded(child: Divider(thickness: 1)),
                                         Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16.0,
-                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
                                           child: Text(
                                             'OR',
                                             style: TextStyle(
@@ -1313,9 +1246,7 @@ class _PatientLoginPageState extends State<PatientLoginPage>
                                           ),
                                         ),
                                         const SizedBox(width: 16),
-                                        const Expanded(
-                                          child: Divider(thickness: 1),
-                                        ),
+                                        const Expanded(child: Divider(thickness: 1)),
                                       ],
                                     ),
                                   ),
@@ -1350,38 +1281,24 @@ class _PatientLoginPageState extends State<PatientLoginPage>
                                         ),
                                       ),
                                       MouseRegion(
-                                        onEnter:
-                                            (_) => setState(
-                                              () => _isHoveringSignUp = true,
-                                            ),
-                                        onExit:
-                                            (_) => setState(
-                                              () => _isHoveringSignUp = false,
-                                            ),
+                                        onEnter: (_) => setState(() => _isHoveringSignUp = true),
+                                        onExit: (_) => setState(() => _isHoveringSignUp = false),
                                         child: GestureDetector(
                                           onTap: () {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder:
-                                                    (context) =>
-                                                        const PatientRegisterPage(),
+                                                builder: (context) => const PatientRegisterPage(),
                                               ),
                                             );
                                           },
                                           child: Text(
                                             'Sign Up',
                                             style: TextStyle(
-                                              color:
-                                                  _isHoveringSignUp
-                                                      ? quicksand
-                                                      : royalBlue,
+                                              color: _isHoveringSignUp ? quicksand : royalBlue,
                                               fontSize: 15,
                                               fontWeight: FontWeight.bold,
-                                              decoration:
-                                                  _isHoveringSignUp
-                                                      ? TextDecoration.underline
-                                                      : null,
+                                              decoration: _isHoveringSignUp ? TextDecoration.underline : null,
                                             ),
                                           ),
                                         ),
@@ -1439,10 +1356,7 @@ class _PatientLoginPageState extends State<PatientLoginPage>
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.red),
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16,
-          horizontal: 16,
-        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       ),
       validator: validator,
     );
@@ -1455,7 +1369,7 @@ class _PatientLoginPageState extends State<PatientLoginPage>
     bool isLight = false,
   }) {
     bool isHovering = false;
-
+    
     return StatefulBuilder(
       builder: (context, setState) {
         return MouseRegion(
@@ -1518,10 +1432,9 @@ class _PatientLoginPageState extends State<PatientLoginPage>
         height: 56,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors:
-                _isHoveringLogin
-                    ? [royalBlue.withOpacity(0.9), royalBlue]
-                    : [royalBlue, royalBlue],
+            colors: _isHoveringLogin
+                ? [royalBlue.withOpacity(0.9), royalBlue]
+                : [royalBlue, royalBlue],
           ),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
@@ -1542,60 +1455,26 @@ class _PatientLoginPageState extends State<PatientLoginPage>
             ),
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),
-          child:
-              _isLoginPressed
-                  ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                  : const Text(
-                    'SIGN IN',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
+          child: _isLoginPressed
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
+                )
+              : const Text(
+                  'SIGN IN',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
         ),
       ),
-    );
-  }
-}
-
-// Color Palette
-const Color royalBlue = Color(0xFF1A237E);
-const Color quicksand = Color(0xFFF4A460);
-const Color swanWing = Color(0xFFF5F5F5);
-const Color darkGrey = Color(0xFF424242);
-
-// Hover extension for better button effects
-extension HoverExtensions on Widget {
-  Widget get showCursorOnHover {
-    return MouseRegion(cursor: SystemMouseCursors.click, child: this);
-  }
-
-  Widget withHoverEffect({
-    double scale = 1.03,
-    Duration duration = const Duration(milliseconds: 200),
-  }) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool isHovered = false;
-        return MouseRegion(
-          onEnter: (_) => setState(() => isHovered = true),
-          onExit: (_) => setState(() => isHovered = false),
-          child: AnimatedScale(
-            scale: isHovered ? scale : 1.0,
-            duration: duration,
-            child: this,
-          ),
-        );
-      },
     );
   }
 }
@@ -1614,8 +1493,6 @@ class _GuardianRegisterPageState extends State<GuardianRegisterPage> {
   final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
   bool _isRegisterPressed = false;
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
@@ -1628,356 +1505,223 @@ class _GuardianRegisterPageState extends State<GuardianRegisterPage> {
 
   Future<void> _registerGuardian() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isRegisterPressed = true);
+      setState(() {
+        _isRegisterPressed = true;
+      });
       try {
         final userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(
-              email: _emailController.text.trim(),
+              email: _emailController.text,
               password: _passwordController.text,
             );
 
         final uid = userCredential.user!.uid;
         await FirebaseFirestore.instance.collection('guardians').doc(uid).set({
-          'name': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
+          'name': _nameController.text,
+          'email': _emailController.text,
           'role': 'guardian',
-          'createdAt': FieldValue.serverTimestamp(),
         });
 
         final profileData = {
-          'email': _emailController.text.trim(),
-          'name': _nameController.text.trim(),
+          'email': _emailController.text,
+          'name': _nameController.text,
           'role': 'guardian',
           'uid': uid,
         };
 
-        if (!mounted) return;
         Navigator.pushReplacementNamed(
           context,
           '/profile_question_name',
           arguments: profileData,
         );
-      } on FirebaseAuthException catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.message}'),
-            backgroundColor: Colors.red[700],
-          ),
-        );
       } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red[700],
-          ),
-        );
-      } finally {
-        if (mounted) {
-          setState(() => _isRegisterPressed = false);
-        }
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
+      setState(() {
+        _isRegisterPressed = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
-      backgroundColor: swanWing,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Container(
-            height: size.height - MediaQuery.of(context).padding.top,
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 24),
-                // Back button and title
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(Icons.arrow_back, color: royalBlue),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Text(
-                      'Create Account',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: royalBlue,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                // Form
-                Expanded(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF6B5B95), // Purple
+              Color(0xFF88B7D5), // Light blue
+            ],
+          ),
+        ),
+        child: Stack(
+          children: [
+            // Background circles
+            Positioned(top: -50, left: -50, child: _buildCircle(150, 0.3)),
+            Positioned(top: 100, right: -70, child: _buildCircle(200, 0.2)),
+            Positioned(bottom: -60, left: -30, child: _buildCircle(180, 0.3)),
+            Positioned(bottom: 50, right: -40, child: _buildCircle(120, 0.2)),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
                   child: Form(
                     key: _formKey,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Name Field
-                        _buildSectionTitle('Full Name'),
-                        const SizedBox(height: 8),
-                        _buildTextField(
+                        const Text(
+                          'Guardian Registration',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                        _buildInputField(
+                          label: 'Name',
                           controller: _nameController,
-                          hint: 'Enter your full name',
-                          prefixIcon: Icons.person_outline,
                           validator:
                               (value) =>
-                                  value == null || value.trim().isEmpty
-                                      ? 'Please enter your name'
+                                  value == null || value.isEmpty
+                                      ? 'Enter your name'
                                       : null,
                         ),
                         const SizedBox(height: 20),
-
-                        // Email Field
-                        _buildSectionTitle('Email Address'),
-                        const SizedBox(height: 8),
-                        _buildTextField(
+                        _buildInputField(
+                          label: 'Email',
                           controller: _emailController,
-                          hint: 'Enter your email',
-                          keyboardType: TextInputType.emailAddress,
-                          prefixIcon: Icons.email_outlined,
                           validator:
                               (value) =>
-                                  value == null || !value.contains('@')
-                                      ? 'Please enter a valid email'
+                                  value == null || value.isEmpty
+                                      ? 'Enter your email'
                                       : null,
                         ),
                         const SizedBox(height: 20),
-
-                        // Password Field
-                        _buildSectionTitle('Password'),
-                        const SizedBox(height: 8),
-                        _buildTextField(
+                        _buildInputField(
+                          label: 'Password',
                           controller: _passwordController,
-                          hint: 'Create a password',
-                          obscureText: _obscurePassword,
-                          prefixIcon: Icons.lock_outline,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: darkGrey.withOpacity(0.6),
-                            ),
-                            onPressed:
-                                () => setState(
-                                  () => _obscurePassword = !_obscurePassword,
-                                ),
-                          ),
+                          obscureText: true,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Enter a password'
+                                      : null,
                         ),
-                        if (_passwordController.text.isNotEmpty &&
-                            _passwordController.text.length < 6)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4.0, left: 8.0),
-                            child: Text(
-                              'Password must be at least 6 characters',
-                              style: TextStyle(
-                                color: Colors.red[700],
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
                         const SizedBox(height: 20),
-
-                        // Confirm Password Field
-                        _buildSectionTitle('Confirm Password'),
-                        const SizedBox(height: 8),
-                        _buildTextField(
+                        _buildInputField(
+                          label: 'Confirm Password',
                           controller: _confirmPasswordController,
-                          hint: 'Confirm your password',
-                          obscureText: _obscureConfirmPassword,
-                          prefixIcon: Icons.lock_outline,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureConfirmPassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: darkGrey.withOpacity(0.6),
-                            ),
-                            onPressed:
-                                () => setState(
-                                  () =>
-                                      _obscureConfirmPassword =
-                                          !_obscureConfirmPassword,
-                                ),
+                          obscureText: true,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Confirm password';
+                            }
+                            if (value != _passwordController.text) {
+                              return 'Passwords do not match';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 30),
+                        _buildSignUpButton(),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context); // Navigate back to login
+                          },
+                          child: const Text(
+                            'Have an account? Log in',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
                           ),
                         ),
-                        if (_confirmPasswordController.text.isNotEmpty &&
-                            _confirmPasswordController.text !=
-                                _passwordController.text)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4.0, left: 8.0),
-                            child: Text(
-                              'Passwords do not match',
-                              style: TextStyle(
-                                color: Colors.red[700],
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        const Spacer(),
-                        // Sign Up Button
-                        _buildSignUpButton(),
-                        const SizedBox(height: 16),
-                        // Login Link
-                        _buildLoginLink(),
-                        const SizedBox(height: 32),
                       ],
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCircle(double radius, double opacity) {
+    return Container(
+      width: radius,
+      height: radius,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(opacity),
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController controller,
+    bool obscureText = false,
+    required String? Function(String?) validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30),
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        style: const TextStyle(color: Colors.white, fontSize: 18),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(
+            color: Colors.white70,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.2),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 15,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: darkGrey,
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData prefixIcon,
-    TextInputType? keyboardType,
-    bool obscureText = false,
-    Widget? suffixIcon,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      validator: validator,
-      style: const TextStyle(
-        fontSize: 16,
-        color: darkGrey,
-        fontWeight: FontWeight.w500,
-      ),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-          color: darkGrey.withOpacity(0.5),
-          fontWeight: FontWeight.normal,
-        ),
-        prefixIcon: Icon(prefixIcon, color: royalBlue.withOpacity(0.7)),
-        suffixIcon: suffixIcon,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: royalBlue, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16,
-          horizontal: 16,
-        ),
+        validator: validator,
       ),
     );
   }
 
   Widget _buildSignUpButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: _isRegisterPressed ? null : _registerGuardian,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: royalBlue,
-          foregroundColor: Colors.white,
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _isRegisterPressed ? null : _registerGuardian,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6B5B95),
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-        ),
-        child:
-            _isRegisterPressed
-                ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-                : const Text(
-                  'SIGN UP',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-      ),
-    );
-  }
-
-  Widget _buildLoginLink() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(
-          'Already have an account? ',
-          style: TextStyle(color: darkGrey),
-        ),
-        GestureDetector(
-          onTap: _isRegisterPressed ? null : () => Navigator.pop(context),
           child: const Text(
-            'Log In',
+            'Sign Up',
             style: TextStyle(
-              color: royalBlue,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
-              decoration: TextDecoration.underline,
+              color: Colors.white,
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -1989,28 +1733,13 @@ class PatientRegisterPage extends StatefulWidget {
   State<PatientRegisterPage> createState() => _PatientRegisterPageState();
 }
 
-class _PatientRegisterPageState extends State<PatientRegisterPage> with SingleTickerProviderStateMixin {
+class _PatientRegisterPageState extends State<PatientRegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
   bool _isRegisterPressed = false;
-  bool _isHoveringLogin = false;
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat(reverse: true);
-    _fadeAnimation = Tween<double>(begin: 0.9, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-  }
 
   @override
   void dispose() {
@@ -2018,13 +1747,14 @@ class _PatientRegisterPageState extends State<PatientRegisterPage> with SingleTi
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _nameController.dispose();
-    _animationController.dispose();
     super.dispose();
   }
 
   Future<void> _registerPatient() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isRegisterPressed = true);
+      setState(() {
+        _isRegisterPressed = true;
+      });
       try {
         final userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(
@@ -2048,316 +1778,201 @@ class _PatientRegisterPageState extends State<PatientRegisterPage> with SingleTi
 
         Navigator.pushReplacementNamed(
           context,
-          '/profile_question_name',
+          '/profile_question_name', // Make sure this route is defined
           arguments: profileData,
         );
       } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      } finally {
-        if (mounted) {
-          setState(() => _isRegisterPressed = false);
-        }
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
+      setState(() {
+        _isRegisterPressed = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    
     return Scaffold(
-      backgroundColor: swanWing,
-      body: Stack(
-        children: [
-          // Background
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: size.height * 0.4,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [royalBlue, royalBlue.withOpacity(0.9)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Create Account',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Sign up to get started',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF6B5B95), // Purple
+              Color(0xFF88B7D5), // Light blue
+            ],
           ),
-
-          // Main Form
-          Positioned(
-            top: size.height * 0.25,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 24),
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
+        ),
+        child: Stack(
+          children: [
+            // Background circles
+            Positioned(top: -50, left: -50, child: _buildCircle(150, 0.3)),
+            Positioned(top: 100, right: -70, child: _buildCircle(200, 0.2)),
+            Positioned(bottom: -60, left: -30, child: _buildCircle(180, 0.3)),
+            Positioned(bottom: 50, right: -40, child: _buildCircle(120, 0.2)),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Patient Registration',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                        _buildInputField(
+                          label: 'Name',
+                          controller: _nameController,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Enter your name'
+                                      : null,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildInputField(
+                          label: 'Email',
+                          controller: _emailController,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Enter your email'
+                                      : null,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildInputField(
+                          label: 'Password',
+                          controller: _passwordController,
+                          obscureText: true,
+                          validator:
+                              (value) =>
+                                  value == null || value.isEmpty
+                                      ? 'Enter a password'
+                                      : null,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildInputField(
+                          label: 'Confirm Password',
+                          controller: _confirmPasswordController,
+                          obscureText: true,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Confirm password';
+                            }
+                            if (value != _passwordController.text) {
+                              return 'Passwords do not match';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 30),
+                        _buildSignUpButton(),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context); // Navigate back to login
+                          },
+                          child: const Text(
+                            'Have an account? Log in',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildInputField(
-                        context: context,
-                        controller: _nameController,
-                        label: 'Full Name',
-                        icon: Icons.person_outline,
-                        validator: (value) => value?.isEmpty ?? true ? 'Please enter your name' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildInputField(
-                        context: context,
-                        controller: _emailController,
-                        label: 'Email Address',
-                        icon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) return 'Please enter your email';
-                          if (!value!.contains('@')) return 'Please enter a valid email';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildInputField(
-                        context: context,
-                        controller: _passwordController,
-                        label: 'Password',
-                        icon: Icons.lock_outline,
-                        obscureText: true,
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) return 'Please enter a password';
-                          if (value!.length < 6) return 'Password must be at least 6 characters';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildInputField(
-                        context: context,
-                        controller: _confirmPasswordController,
-                        label: 'Confirm Password',
-                        icon: Icons.lock_outline,
-                        obscureText: true,
-                        validator: (value) {
-                          if (value != _passwordController.text) {
-                            return 'Passwords do not match';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 32),
-                      // Sign Up Button
-                      MouseRegion(
-                        onEnter: (_) => setState(() => _isHoveringLogin = true),
-                        onExit: (_) => setState(() => _isHoveringLogin = false),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          height: 56,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: _isHoveringLogin
-                                  ? [quicksand, quicksand.withOpacity(0.8)]
-                                  : [royalBlue, royalBlue.withOpacity(0.8)],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: royalBlue.withOpacity(_isHoveringLogin ? 0.4 : 0.2),
-                                blurRadius: _isHoveringLogin ? 12 : 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: _isRegisterPressed ? null : _registerPatient,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            child: _isRegisterPressed
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : Text(
-                                    'SIGN UP',
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Already have an account
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Already have an account? ',
-                            style: GoogleFonts.poppins(
-                              color: Colors.grey[600],
-                              fontSize: 14,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: Text(
-                              'Log In',
-                              style: GoogleFonts.poppins(
-                                color: royalBlue,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                    ],
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCircle(double radius, double opacity) {
+    return Container(
+      width: radius,
+      height: radius,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(opacity),
       ),
     );
   }
 
   Widget _buildInputField({
-    required BuildContext context,
-    required TextEditingController controller,
     required String label,
-    required IconData icon,
+    required TextEditingController controller,
     bool obscureText = false,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
+    required String? Function(String?) validator,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30),
       child: TextFormField(
         controller: controller,
         obscureText: obscureText,
-        keyboardType: keyboardType,
-        style: GoogleFonts.poppins(
-          color: Colors.grey[800],
-          fontSize: 15,
-        ),
+        style: const TextStyle(color: Colors.white, fontSize: 18),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: GoogleFonts.poppins(
-            color: Colors.grey[600],
-            fontSize: 14,
+          labelStyle: const TextStyle(
+            color: Colors.white70,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
           ),
-          prefixIcon: Icon(icon, color: royalBlue),
           filled: true,
-          fillColor: Colors.grey[50],
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: Colors.grey[200]!,
-              width: 1.5,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: royalBlue,
-              width: 1.5,
-            ),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-              color: Colors.red,
-              width: 1.5,
-            ),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-              color: Colors.red,
-              width: 1.5,
-            ),
+          fillColor: Colors.white.withOpacity(0.2),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide.none,
           ),
           contentPadding: const EdgeInsets.symmetric(
-            vertical: 16,
-            horizontal: 16,
+            horizontal: 20,
+            vertical: 15,
           ),
         ),
         validator: validator,
       ),
     );
   }
+
+  Widget _buildSignUpButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _isRegisterPressed ? null : _registerPatient,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6B5B95),
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+          ),
+          child: const Text(
+            'Sign Up',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
+
 // Inside main.dart — Just the PatientDashboardPage
 
 class PatientDashboardPage extends StatefulWidget {
@@ -2367,6 +1982,11 @@ class PatientDashboardPage extends StatefulWidget {
   State<PatientDashboardPage> createState() => _PatientDashboardPageState();
 }
 
+// Color Palette
+const Color royalBlue = Color(0xFF1A237E);
+const Color quicksand = Color(0xFFF4A460);
+const Color swanWing = Color(0xFFF5F5F5);
+const Color darkGrey = Color(0xFF424242);
 const Color lightGrey = Color(0xFFEEEEEE);
 
 class _PatientDashboardPageState extends State<PatientDashboardPage> {
@@ -2535,43 +2155,38 @@ class _PatientDashboardPageState extends State<PatientDashboardPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.notifications_none,
-              color: Colors.white,
-              size: 28,
-            ),
+            icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
             onPressed: () {},
           ),
         ],
       ),
-      body:
-          _isLoading
-              ? Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(royalBlue),
-                ),
-              )
-              : SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header with greeting and profile
-                    _buildHeader(),
-
-                    // Stats Cards
-                    _buildStatsSection(),
-
-                    // Today's Routines
-                    _buildTodaysRoutines(),
-
-                    // Features Grid
-                    _buildFeaturesGrid(context),
-
-                    const SizedBox(height: 24),
-                  ],
-                ),
+      body: _isLoading
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(royalBlue),
               ),
+            )
+          : SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with greeting and profile
+                  _buildHeader(),
+                  
+                  // Stats Cards
+                  _buildStatsSection(),
+                  
+                  // Today's Routines
+                  _buildTodaysRoutines(),
+                  
+                  // Features Grid
+                  _buildFeaturesGrid(context),
+                  
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
     );
   }
 
@@ -2611,15 +2226,39 @@ class _PatientDashboardPageState extends State<PatientDashboardPage> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  'Patient ID: ${user?.uid ?? 'Unknown'}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Patient ID: ${user?.uid ?? 'Unknown'}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.content_copy, color: Colors.white, size: 18),
+                      onPressed: () {
+                        if (user?.uid != null) {
+                          Clipboard.setData(ClipboardData(text: user!.uid));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Patient ID copied to clipboard'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Copy Patient ID',
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -2694,10 +2333,7 @@ class _PatientDashboardPageState extends State<PatientDashboardPage> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: royalBlue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -2717,15 +2353,12 @@ class _PatientDashboardPageState extends State<PatientDashboardPage> {
                           _analyzeQuizResults();
                         }
                       },
-                      items:
-                          _timeWindows.map<DropdownMenuItem<String>>((
-                            String value,
-                          ) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
+                      items: _timeWindows.map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ),
@@ -2737,13 +2370,7 @@ class _PatientDashboardPageState extends State<PatientDashboardPage> {
     );
   }
 
-  Widget _buildStatCard(
-    String title,
-    String value,
-    String percentage,
-    IconData icon,
-    Color color,
-  ) {
+  Widget _buildStatCard(String title, String value, String percentage, IconData icon, Color color) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -2811,7 +2438,7 @@ class _PatientDashboardPageState extends State<PatientDashboardPage> {
     if (_todayRoutines.isEmpty) {
       return const SizedBox.shrink();
     }
-
+    
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -2848,11 +2475,7 @@ class _PatientDashboardPageState extends State<PatientDashboardPage> {
                         color: Colors.white24,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.calendar_today,
-                        color: Colors.white,
-                        size: 20,
-                      ),
+                      child: const Icon(Icons.calendar_today, color: Colors.white, size: 20),
                     ),
                     const SizedBox(width: 12),
                     Text(
@@ -2866,10 +2489,7 @@ class _PatientDashboardPageState extends State<PatientDashboardPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                ..._todayRoutines
-                    .take(2)
-                    .map((routine) => _buildRoutineItem(routine))
-                    .toList(),
+                ..._todayRoutines.take(2).map((routine) => _buildRoutineItem(routine)).toList(),
                 if (_todayRoutines.length > 2) ...[
                   const SizedBox(height: 12),
                   Center(
@@ -2890,7 +2510,7 @@ class _PatientDashboardPageState extends State<PatientDashboardPage> {
       ),
     );
   }
-
+  
   Widget _buildRoutineItem(DocumentSnapshot routine) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -2926,18 +2546,17 @@ class _PatientDashboardPageState extends State<PatientDashboardPage> {
                   const SizedBox(height: 4),
                   Text(
                     routine['time'],
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(
-              Icons.notifications_none,
-              color: Colors.white,
-              size: 20,
-            ),
+            icon: const Icon(Icons.notifications_none, color: Colors.white, size: 20),
             onPressed: () {},
           ),
         ],
@@ -3483,7 +3102,10 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
       appBar: AppBar(
         title: const Text(
           'Memory Keeper',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 22),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 22,
+          ),
         ),
         backgroundColor: royalBlue,
         elevation: 0,
@@ -3513,39 +3135,33 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
                           decoration: BoxDecoration(
                             color: swanWing,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: royalBlue.withOpacity(0.2),
-                            ),
+                            border: Border.all(color: royalBlue.withOpacity(0.2)),
                           ),
-                          child:
-                              _image == null
-                                  ? Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.add_photo_alternate_outlined,
-                                        size: 50,
-                                        color: royalBlue.withOpacity(0.5),
+                          child: _image == null
+                              ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_photo_alternate_outlined,
+                                        size: 50, color: royalBlue.withOpacity(0.5)),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Add a photo to remember',
+                                      style: TextStyle(
+                                        color: royalBlue.withOpacity(0.7),
+                                        fontSize: 14,
                                       ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Add a photo to remember',
-                                        style: TextStyle(
-                                          color: royalBlue.withOpacity(0.7),
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                  : ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Image.file(
-                                      File(_image!.path),
-                                      fit: BoxFit.cover,
                                     ),
+                                  ],
+                                )
+                              : ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.file(
+                                    File(_image!.path),
+                                    fit: BoxFit.cover,
                                   ),
+                                ),
                         ),
-
+                        
                         // Recorded Text
                         Container(
                           margin: const EdgeInsets.symmetric(vertical: 16),
@@ -3553,25 +3169,22 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: royalBlue.withOpacity(0.1),
-                            ),
+                            border: Border.all(color: royalBlue.withOpacity(0.1)),
                           ),
                           child: Text(
                             _recordedText.isEmpty
                                 ? 'Tap the mic to record your memory...'
                                 : _recordedText,
                             style: TextStyle(
-                              color:
-                                  _recordedText.isEmpty
-                                      ? Colors.grey[500]
-                                      : Colors.black87,
+                              color: _recordedText.isEmpty 
+                                  ? Colors.grey[500] 
+                                  : Colors.black87,
                               fontSize: 15,
                             ),
                             textAlign: TextAlign.center,
                           ),
                         ),
-
+                        
                         // Action Buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -3584,10 +3197,7 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
                             _buildActionButton(
                               icon: _isListening ? Icons.mic_off : Icons.mic,
                               label: _isListening ? 'Stop' : 'Record',
-                              onPressed:
-                                  _isListening
-                                      ? _stopListening
-                                      : _startListening,
+                              onPressed: _isListening ? _stopListening : _startListening,
                               isActive: _isListening,
                             ),
                             _buildActionButton(
@@ -3599,8 +3209,7 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
                               icon: Icons.save,
                               label: 'Save',
                               onPressed: _saveMemory,
-                              isDisabled:
-                                  _image == null || _recordedText.isEmpty,
+                              isDisabled: _image == null || _recordedText.isEmpty,
                             ),
                           ],
                         ),
@@ -3608,7 +3217,7 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
                     ),
                   ),
                 ),
-
+                
                 // Error Message
                 if (_errorMessage != null)
                   Padding(
@@ -3634,7 +3243,7 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
                       ),
                     ),
                   ),
-
+                
                 // Memories Header
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
@@ -3650,22 +3259,18 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
                         ),
                       ),
                       ElevatedButton.icon(
-                        onPressed:
-                            () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const MemoryQuizGamePage(),
-                              ),
-                            ),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MemoryQuizGamePage(),
+                          ),
+                        ),
                         icon: const Icon(Icons.games, size: 18),
                         label: const Text('Play Quiz'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: quicksand,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -3675,7 +3280,7 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
                     ],
                   ),
                 ),
-
+                
                 // Memories Grid
                 if (_isLoading)
                   const Padding(
@@ -3687,11 +3292,7 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
                     padding: const EdgeInsets.symmetric(vertical: 40.0),
                     child: Column(
                       children: [
-                        Icon(
-                          Icons.photo_library_outlined,
-                          size: 60,
-                          color: Colors.grey[400],
-                        ),
+                        Icon(Icons.photo_library_outlined, size: 60, color: Colors.grey[400]),
                         const SizedBox(height: 16),
                         Text(
                           'No memories yet\nStart by adding your first memory!',
@@ -3708,17 +3309,13 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.8,
                     ),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.8,
-                        ),
                     itemCount: _memories.length,
                     itemBuilder: (context, index) {
                       final memory = _memories[index];
@@ -3751,10 +3348,9 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
         Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color:
-                isDisabled
-                    ? Colors.grey[200]
-                    : (isActive ? quicksand : royalBlue.withOpacity(0.05)),
+            color: isDisabled 
+                ? Colors.grey[200] 
+                : (isActive ? quicksand : royalBlue.withOpacity(0.05)),
             border: Border.all(
               color: isActive ? quicksand : royalBlue.withOpacity(0.2),
               width: 1.5,
@@ -3763,10 +3359,9 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
           child: IconButton(
             icon: Icon(
               icon,
-              color:
-                  isDisabled
-                      ? Colors.grey[400]
-                      : (isActive ? Colors.white : royalBlue),
+              color: isDisabled 
+                  ? Colors.grey[400] 
+                  : (isActive ? Colors.white : royalBlue),
               size: 22,
             ),
             onPressed: isDisabled ? null : onPressed,
@@ -3806,9 +3401,7 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
             // Image
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                 child: Image.network(
                   memory['imageUrl'],
                   fit: BoxFit.cover,
@@ -3819,24 +3412,19 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
                       color: swanWing,
                       child: Center(
                         child: CircularProgressIndicator(
-                          value:
-                              loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
                           color: royalBlue,
                         ),
                       ),
                     );
                   },
-                  errorBuilder:
-                      (context, error, stackTrace) => Container(
-                        color: swanWing,
-                        child: const Icon(
-                          Icons.broken_image,
-                          color: Colors.grey,
-                        ),
-                      ),
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: swanWing,
+                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                  ),
                 ),
               ),
             ),
@@ -3859,7 +3447,10 @@ class _PatientFeaturesPageState extends State<PatientFeaturesPage> {
                   const SizedBox(height: 4),
                   Text(
                     DateFormat('MMM d, y • h:mm a').format(memory['dateTime']),
-                    style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
@@ -3882,12 +3473,12 @@ class _MemoryQuizGamePageState extends State<MemoryQuizGamePage>
     with SingleTickerProviderStateMixin {
   // Color constants
   static const Color _primaryColor = Color(0xFF1A237E); // Royal Blue
-  static const Color _accentColor = Color(0xFFF4A460); // Quicksand
+  static const Color _accentColor = Color(0xFFF4A460);   // Quicksand
   static const Color _backgroundColor = Color(0xFFF5F5F5); // Swan Wing
-  static const Color _textColor = Color(0xFF424242); // Dark Grey
+  static const Color _textColor = Color(0xFF424242);      // Dark Grey
   static const Color _cardColor = Colors.white;
-  static const Color _successColor = Color(0xFF4CAF50); // Green for success
-  static const Color _errorColor = Color(0xFFE53935); // Red for errors
+  static const Color _successColor = Color(0xFF4CAF50);   // Green for success
+  static const Color _errorColor = Color(0xFFE53935);      // Red for errors
   final user = FirebaseAuth.instance.currentUser;
   List<Map<String, dynamic>> _memories = [];
   int _currentIndex = 0;
@@ -3989,7 +3580,7 @@ class _MemoryQuizGamePageState extends State<MemoryQuizGamePage>
       _isCorrect = correct;
     });
     _animController.forward(from: 0);
-
+    
     // Update score and record attempt in Firestore
     final scoreUpdate = correct ? 10 : 0;
     if (correct) {
@@ -3999,7 +3590,7 @@ class _MemoryQuizGamePageState extends State<MemoryQuizGamePage>
           .doc(user!.uid)
           .set({'cutePoints': _score}, SetOptions(merge: true));
     }
-
+    
     // Record the attempt (both correct and incorrect)
     await FirebaseFirestore.instance
         .collection('patients')
@@ -4034,16 +3625,10 @@ class _MemoryQuizGamePageState extends State<MemoryQuizGamePage>
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color:
-              _isCorrect
-                  ? _successColor.withOpacity(0.1)
-                  : _errorColor.withOpacity(0.1),
+          color: _isCorrect ? _successColor.withOpacity(0.1) : _errorColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color:
-                _isCorrect
-                    ? _successColor.withOpacity(0.3)
-                    : _errorColor.withOpacity(0.3),
+            color: _isCorrect ? _successColor.withOpacity(0.3) : _errorColor.withOpacity(0.3),
             width: 1.5,
           ),
         ),
@@ -4101,7 +3686,7 @@ class _MemoryQuizGamePageState extends State<MemoryQuizGamePage>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-
+    
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
@@ -4121,228 +3706,217 @@ class _MemoryQuizGamePageState extends State<MemoryQuizGamePage>
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body:
-          _isLoading
-              ? const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(_primaryColor),
-                ),
-              )
-              : _memories.isEmpty
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(_primaryColor),
+              ),
+            )
+          : _memories.isEmpty
               ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.quiz_outlined,
-                      size: 64,
-                      color: _primaryColor.withOpacity(0.5),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No memories to quiz yet!',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: _textColor,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.quiz_outlined,
+                        size: 64,
+                        color: _primaryColor.withOpacity(0.5),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Add some memories first to start the quiz',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: _textColor.withOpacity(0.7),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No memories to quiz yet!',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: _textColor,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              )
-              : Column(
-                children: [
-                  // Score Card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 24,
-                    ),
-                    margin: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: _cardColor,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Add some memories first to start the quiz',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: _textColor.withOpacity(0.7),
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Your Score',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: _textColor.withOpacity(0.7),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '$_score',
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w800,
-                                color: _primaryColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: _accentColor.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.emoji_events,
-                            color: _accentColor,
-                            size: 32,
-                          ),
-                        ),
-                      ],
-                    ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
-
-                  // Quiz Card
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Column(
-                          children: [
-                            // Image Card
-                            Container(
-                              width: double.infinity,
-                              margin: const EdgeInsets.only(bottom: 20),
-                              decoration: BoxDecoration(
-                                color: _cardColor,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
+                )
+              : Column(
+                  children: [
+                    // Score Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                      margin: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Your Score',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: _textColor.withOpacity(0.7),
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(16),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$_score',
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w800,
+                                  color: _primaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _accentColor.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.emoji_events,
+                              color: _accentColor,
+                              size: 32,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Quiz Card
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Column(
+                            children: [
+                              // Image Card
+                              Container(
+                                width: double.infinity,
+                                margin: const EdgeInsets.only(bottom: 20),
+                                decoration: BoxDecoration(
+                                  color: _cardColor,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
                                     ),
-                                    child: Image.network(
-                                      _memories[_currentIndex]['imageUrl'],
-                                      height: 200,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Container(
-                                                height: 200,
-                                                color: _backgroundColor,
-                                                child: const Center(
-                                                  child: Icon(
-                                                    Icons.broken_image,
-                                                    size: 48,
-                                                    color: Colors.grey,
-                                                  ),
-                                                ),
-                                              ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Text(
-                                      'What memory is this?',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w600,
-                                        color: _textColor,
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(16),
+                                      ),
+                                      child: Image.network(
+                                        _memories[_currentIndex]['imageUrl'],
+                                        height: 200,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) => Container(
+                                          height: 200,
+                                          color: _backgroundColor,
+                                          child: const Center(
+                                            child: Icon(
+                                              Icons.broken_image,
+                                              size: 48,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Options
-                            if (!_showResult)
-                              ..._options.map((opt) => _buildOptionButton(opt)),
-
-                            // Result Animation
-                            if (_showResult) _buildCuteAnimation(),
-
-                            // Error Message
-                            if (_errorMessage != null)
-                              Container(
-                                margin: const EdgeInsets.only(top: 16),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _errorColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.error_outline,
-                                      color: _errorColor,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
+                                    Padding(
+                                      padding: const EdgeInsets.all(16.0),
                                       child: Text(
-                                        _errorMessage!,
+                                        'What memory is this?',
                                         style: TextStyle(
-                                          color: _errorColor,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                          color: _textColor,
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-
-                            const SizedBox(height: 20),
-
-                            // Score History
-                            _buildScoreHistorySection(),
-
-                            const SizedBox(height: 32),
-                          ],
+                              
+                              // Options
+                              if (!_showResult)
+                                ..._options.map(
+                                  (opt) => _buildOptionButton(opt),
+                                ),
+                              
+                              // Result Animation
+                              if (_showResult) _buildCuteAnimation(),
+                              
+                              // Error Message
+                              if (_errorMessage != null)
+                                Container(
+                                  margin: const EdgeInsets.only(top: 16),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: _errorColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.error_outline, color: _errorColor, size: 20),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _errorMessage!,
+                                          style: TextStyle(
+                                            color: _errorColor,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              
+                              const SizedBox(height: 20),
+                              
+                              // Score History
+                              _buildScoreHistorySection(),
+                              
+                              const SizedBox(height: 32),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
     );
   }
-
+  
   Widget _buildOptionButton(String option) {
     return Container(
       width: double.infinity,
@@ -4380,7 +3954,7 @@ class _MemoryQuizGamePageState extends State<MemoryQuizGamePage>
       ),
     );
   }
-
+  
   Widget _buildScoreHistorySection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -4419,7 +3993,7 @@ class _MemoryQuizGamePageState extends State<MemoryQuizGamePage>
                   ),
                 );
               }
-
+              
               final scores = snapshot.data!;
               if (scores.isEmpty) {
                 return const Padding(
@@ -4427,25 +4001,27 @@ class _MemoryQuizGamePageState extends State<MemoryQuizGamePage>
                   child: Center(
                     child: Text(
                       'No quiz history yet.',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
                 );
               }
-
+              
               return ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 itemCount: scores.length,
-                separatorBuilder:
-                    (context, index) => Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: _backgroundColor.withOpacity(0.8),
-                      indent: 16,
-                      endIndent: 16,
-                    ),
+                separatorBuilder: (context, index) => Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: _backgroundColor.withOpacity(0.8),
+                  indent: 16,
+                  endIndent: 16,
+                ),
                 itemBuilder: (context, i) {
                   final s = scores[i];
                   return ListTile(
@@ -5219,6 +4795,7 @@ class MedicalAIChatBotPage extends StatefulWidget {
   State<MedicalAIChatBotPage> createState() => _MedicalAIChatBotPageState();
 }
 
+
 class _MedicalAIChatBotPageState extends State<MedicalAIChatBotPage>
     with SingleTickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
@@ -5233,7 +4810,7 @@ class _MedicalAIChatBotPageState extends State<MedicalAIChatBotPage>
   late Animation<double> _jumpAnimation2;
   late Animation<double> _jumpAnimation3;
   late Animation<double> _morphAnimation;
-
+  
   // For hover effect on send button
   bool _isHovering = false;
 
@@ -5244,7 +4821,7 @@ class _MedicalAIChatBotPageState extends State<MedicalAIChatBotPage>
       vsync: this,
       duration: const Duration(milliseconds: 1750),
     )..repeat();
-
+    
     // Add a small delay to ensure the UI is built before scrolling
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -5292,17 +4869,17 @@ class _MedicalAIChatBotPageState extends State<MedicalAIChatBotPage>
   Future<void> _sendMessage() async {
     final input = _controller.text.trim();
     if (input.isEmpty) return;
-
+    
     // Dismiss keyboard
     FocusScope.of(context).unfocus();
-
+    
     setState(() {
       _messages.add({'role': 'user', 'content': input});
       _isLoading = true;
       _errorMessage = null;
       _controller.clear();
     });
-
+    
     // Scroll to bottom when new message is added
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -5345,7 +4922,7 @@ class _MedicalAIChatBotPageState extends State<MedicalAIChatBotPage>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-
+    
     return Scaffold(
       backgroundColor: swanWing,
       appBar: AppBar(
@@ -5376,106 +4953,100 @@ class _MedicalAIChatBotPageState extends State<MedicalAIChatBotPage>
                   bottomRight: Radius.circular(20),
                 ),
               ),
-              child:
-                  _messages.isEmpty
-                      ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.medical_services_outlined,
-                              size: 60,
-                              color: royalBlue.withOpacity(0.7),
+              child: _messages.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.medical_services_outlined,
+                            size: 60,
+                            color: royalBlue.withOpacity(0.7),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Ask me anything about\nyour health',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[700],
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Ask me anything about\nyour health',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                      : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, i) {
-                          final m = _messages[i];
-                          final isUser = m['role'] == 'user';
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            child: Row(
-                              mainAxisAlignment:
-                                  isUser
-                                      ? MainAxisAlignment.end
-                                      : MainAxisAlignment.start,
-                              children: [
-                                if (!isUser)
-                                  Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: royalBlue,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.medical_services,
-                                      color: Colors.white,
-                                      size: 18,
-                                    ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, i) {
+                        final m = _messages[i];
+                        final isUser = m['role'] == 'user';
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          child: Row(
+                            mainAxisAlignment: isUser
+                                ? MainAxisAlignment.end
+                                : MainAxisAlignment.start,
+                            children: [
+                              if (!isUser)
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: royalBlue,
+                                    shape: BoxShape.circle,
                                   ),
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          isUser ? royalBlue : Colors.grey[100],
-                                      borderRadius: BorderRadius.only(
-                                        topLeft: const Radius.circular(16),
-                                        topRight: const Radius.circular(16),
-                                        bottomLeft: Radius.circular(
-                                          isUser ? 16 : 4,
-                                        ),
-                                        bottomRight: Radius.circular(
-                                          isUser ? 4 : 16,
-                                        ),
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.05),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
+                                  child: const Icon(
+                                    Icons.medical_services,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isUser
+                                        ? royalBlue
+                                        : Colors.grey[100],
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(16),
+                                      topRight: const Radius.circular(16),
+                                      bottomLeft: Radius.circular(
+                                          isUser ? 16 : 4),
+                                      bottomRight: Radius.circular(
+                                          isUser ? 4 : 16),
                                     ),
-                                    child: Text(
-                                      m['content'] ?? '',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        color:
-                                            isUser
-                                                ? Colors.white
-                                                : Colors.grey[800],
-                                        height: 1.4,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
                                       ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    m['content'] ?? '',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: isUser
+                                          ? Colors.white
+                                          : Colors.grey[800],
+                                      height: 1.4,
                                     ),
                                   ),
                                 ),
-                                if (isUser) const SizedBox(width: 8),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+                              ),
+                              if (isUser) const SizedBox(width: 8),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
             ),
           ),
           if (_errorMessage != null)
@@ -5563,8 +5134,9 @@ class _MedicalAIChatBotPageState extends State<MedicalAIChatBotPage>
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color:
-                          _isHovering ? royalBlue.withOpacity(0.9) : royalBlue,
+                      color: _isHovering
+                          ? royalBlue.withOpacity(0.9)
+                          : royalBlue,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -5640,10 +5212,9 @@ class _MedicalAIChatBotPageState extends State<MedicalAIChatBotPage>
           height: 10,
           margin: const EdgeInsets.only(bottom: 2),
           child: Transform(
-            transform:
-                Matrix4.identity()
-                  ..translate(0.0, jumpOffset)
-                  ..scale(scaleX, scaleY),
+            transform: Matrix4.identity()
+              ..translate(0.0, jumpOffset)
+              ..scale(scaleX, scaleY),
             alignment: Alignment.bottomCenter,
             child: Container(
               decoration: BoxDecoration(
